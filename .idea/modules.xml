@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/nubomedia-webrtcpeer-android.iml" filepath="$PROJECT_DIR$/nubomedia-webrtcpeer-android.iml" />
-      <module fileurl="file://$PROJECT_DIR$/utilities-android/utilities-android.iml" filepath="$PROJECT_DIR$/utilities-android/utilities-android.iml" />
       <module fileurl="file://$PROJECT_DIR$/webrtcpeer-android/webrtcpeer-android.iml" filepath="$PROJECT_DIR$/webrtcpeer-android/webrtcpeer-android.iml" />
     </modules>
   </component>
