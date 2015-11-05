@@ -1,1 +1,1 @@
-include ':webrtcpeer-android', ':utilities-android'
+include ':webrtcpeer-android'
