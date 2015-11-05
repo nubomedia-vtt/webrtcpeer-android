@@ -1,4 +1,8 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: "com.jfrog.bintray"
+
+version "1.0.0"
 
 android {
     compileSdkVersion 23
@@ -22,7 +26,100 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.1.0'
+    compile 'fi.vtt.nubomedia:utilities-android:1.0.0'
     compile files('libs/libjingle_peerconnection.jar')
+}
 
-    compile project(':utilities-android')
+def siteUrl = 'https://github.com/nubomedia-vtt/webrtcpeer-android'      // Homepage URL of the library
+def gitUrl = 'https://github.com/nubomedia-vtt/webrtcpeer-android.git'   // Git repository URL
+group = "fi.vtt.nubomedia"                      // Maven Group ID for the artifact
+
+install {
+    repositories.mavenInstaller {
+        // This generates POM.xml with proper parameters
+        pom {
+            project {
+                packaging 'aar'
+
+                // Add your description here
+                name 'webrtcpeer-android'
+                description = 'Android library for creating WebRTC connections.'
+                url siteUrl
+
+                // Set your license
+                licenses {
+                    license {
+                        name 'The BSD 3-Clause License'
+                        url 'https://github.com/nubomedia-vtt/webrtcpeer-android/blob/master/LICENSE'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'vvvilleh'
+                        name 'Ville Valjus'
+                        email 'ville.valjus@vtt.fi'
+                    }
+                }
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+
+                }
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+//    source = fileTree(dir: 'src/main/java').matching{include 'fi/vtt/nubomedia/webrtcpeerandroid/*.java'}
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    classpath += project.files('libs/libjingle_peerconnection.jar')
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+// https://github.com/bintray/gradle-bintray-plugin
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+
+    configurations = ['archives']
+    pkg {
+        repo = "maven"
+        // it is the name that appears in bintray when logged
+        name = "webrtcpeer-android"
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = ["BSD 3-Clause"]
+        publish = true
+        version {
+            gpg {
+                sign = true //Determines whether to GPG sign the files. The default is false
+                passphrase = properties.getProperty("bintray.gpg.password") //Optional. The passphrase for GPG signing'
+            }
+//            mavenCentralSync {
+//                sync = true //Optional (true by default). Determines whether to sync the version to Maven Central.
+//                user = properties.getProperty("bintray.oss.user") //OSS user token
+//                password = properties.getProperty("bintray.oss.password") //OSS user password
+//                close = '1' //Optional property. By default the staging repository is closed and artifacts are released to Maven Central. You can optionally turn this behaviour off (by puting 0 as value) and release the version manually.
+//            }
+        }
+    }
 }
