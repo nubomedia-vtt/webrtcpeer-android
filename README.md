@@ -12,7 +12,7 @@ and the following third-party library:
 
 Building
 --------
-You can import this project to your own Android Studio project via Maven by adding the following line to module's `build.gradle` file:
+You can import this project to your own Android Studio project via Maven (jCenter or Maven Central) by adding the following line to module's `build.gradle` file:
 ```
 compile 'fi.vtt.nubomedia:webrtcpeer-android:1.0.0'
 ```
@@ -30,4 +30,3 @@ This repository is licensed under a BSD license. See the `LICENSE` file for more
 Support
 -------
 Support is provided through the [NUBOMEDIA VTT Public Mailing List](https://groups.google.com/forum/#!forum/nubomedia-vtt).
-
