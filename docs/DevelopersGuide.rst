@@ -13,13 +13,6 @@ You can import this project to your own Android Studio project via Maven (jCente
 
     compile 'fi.vtt.nubomedia:webrtcpeer-android:1.0.0'
 
-
-Android application code
-
-.. code:: java
-
-    import fi.vtt.nubomedia.kurentoroomclientandroid.KurentoRoomAPI;
-
 Source code is available at
 https://github.com/nubomedia-vtt/webrtcpeer-android
 
