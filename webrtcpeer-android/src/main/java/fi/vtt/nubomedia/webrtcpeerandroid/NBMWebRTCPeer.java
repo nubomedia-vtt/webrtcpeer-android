@@ -69,8 +69,6 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
         signalingParameters = new PeerConnectionClient.SignalingParameters(iceServers,true,"",null,null);
 
-        initialize();
-
     }
 
 
@@ -105,12 +103,11 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
     }
 
     public void addRemoteIceCandidate(IceCandidate remoteIceCandidate) {
-
+        connection.addRemoteIceCandidate(remoteIceCandidate);
     }
 
     public void closeConnection(){
-
-
+        connection.close();
     }
 
 
@@ -170,7 +167,7 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
     @Override
     public void onLocalDescription(SessionDescription sdp) {
-        observer.onLocalSdpAnswerGenerated(sdp);
+        observer.onLocalSdpOfferGenerated(sdp);
     }
 
     @Override
@@ -190,7 +187,7 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
     @Override
     public void onPeerConnectionClosed() {
-
+        observer.onIceStatusChanged(IceConnectionState.CLOSED);
     }
 
     @Override
