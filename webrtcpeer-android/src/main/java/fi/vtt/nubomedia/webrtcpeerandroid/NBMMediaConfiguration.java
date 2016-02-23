@@ -50,8 +50,37 @@ public class NBMMediaConfiguration {
     private NBMVideoCodec videoCodec;
     private int videoBandwidth;
 
-    NBMVideoFormat receiverVideoFormat;
-    NBMCameraPosition cameraPosition;
+    private NBMVideoFormat receiverVideoFormat;
+
+    public NBMCameraPosition getCameraPosition() {
+        return cameraPosition;
+    }
+
+    public NBMRendererType getRendererType() {
+        return rendererType;
+    }
+
+    public NBMAudioCodec getAudioCodec() {
+        return audioCodec;
+    }
+
+    public int getAudioBandwidth() {
+        return audioBandwidth;
+    }
+
+    public NBMVideoCodec getVideoCodec() {
+        return videoCodec;
+    }
+
+    public int getVideoBandwidth() {
+        return videoBandwidth;
+    }
+
+    public NBMVideoFormat getReceiverVideoFormat() {
+        return receiverVideoFormat;
+    }
+
+    private NBMCameraPosition cameraPosition;
 
     public NBMMediaConfiguration() {
         rendererType = NBMRendererType.NATIVE
