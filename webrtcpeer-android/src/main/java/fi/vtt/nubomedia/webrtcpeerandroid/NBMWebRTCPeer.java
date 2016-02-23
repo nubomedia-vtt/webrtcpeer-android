@@ -101,14 +101,18 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
     }
 
     public void processAnswer(SessionDescription remoteAnswer) {
-
-
-
+        connection.setRemoteDescription(remoteAnswer);
     }
 
     public void addRemoteIceCandidate(IceCandidate remoteIceCandidate) {
 
     }
+
+    public void closeConnection(){
+
+
+    }
+
 
     public boolean startLocalMedia() {
         connection.startVideoSource();
@@ -171,17 +175,17 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
     @Override
     public void onIceCandidate(IceCandidate candidate) {
-
+        observer.onIceCandicate(candidate);
     }
 
     @Override
     public void onIceConnected() {
-
+        observer.onIceStatusChanged(IceConnectionState.CONNECTED);
     }
 
     @Override
     public void onIceDisconnected() {
-
+        observer.onIceStatusChanged(IceConnectionState.DISCONNECTED);
     }
 
     @Override
