@@ -83,7 +83,7 @@ public class NBMMediaConfiguration {
     private NBMCameraPosition cameraPosition;
 
     public NBMMediaConfiguration() {
-        rendererType = NBMRendererType.NATIVE
+        rendererType = NBMRendererType.NATIVE;
         audioCodec = NBMAudioCodec.OPUS;
         audioBandwidth = 0;
 

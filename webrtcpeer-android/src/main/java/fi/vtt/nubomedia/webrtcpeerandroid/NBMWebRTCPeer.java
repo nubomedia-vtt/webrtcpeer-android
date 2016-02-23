@@ -4,7 +4,9 @@ import android.content.Context;
 import android.util.Log;
 
 import org.webrtc.IceCandidate;
+import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
+import org.webrtc.PeerConnection.IceConnectionState;
 import org.webrtc.SessionDescription;
 import org.webrtc.StatsReport;
 import org.webrtc.VideoRenderer;
@@ -29,17 +31,27 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
     private VideoRenderer.Callbacks localRender;
     private VideoRenderer.Callbacks remoteRender;
 
+    private Observer observer;
+
 
     public interface Observer {
-        void onLocalSdpOffer(SessionDescription localSdp);
+        void onLocalSdpOfferGenerated(SessionDescription localSdpOffer);
+        /* Not implemented yet  */
+        void onLocalSdpAnswerGenerated(SessionDescription localSdpAnswer);
 
         void onIceCandicate(IceCandidate localIceCandidate);
 
+        void onIceStatusChanged(IceConnectionState state);
+
+        void onRemoteStreamAdded(MediaStream stream);
+
+        void onRemoteStreamRemoved(MediaStream stream);
     }
 
 
+
     public NBMWebRTCPeer(NBMMediaConfiguration config, Context context,
-                         VideoRenderer.Callbacks localRenderer, VideoRenderer.Callbacks remoteRenderer) {
+                         VideoRenderer.Callbacks localRenderer, VideoRenderer.Callbacks remoteRenderer, Observer observer) {
         this.config = config;
         this.context = context;
 
@@ -76,15 +88,21 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
     public void generateOffer(String connectionId){
 
-        // Start local stream
-        createPeerConnectionAndOffer();
+        // Create connection and initialise local stream
+        createPeerConnection();
 
         // Create offer. Offer SDP will be sent to answering client in
         // PeerConnectionEvents.onLocalDescription event.
         connection.createOffer();
     }
 
+    public void processOffer(SessionDescription remoteOffer) {
+        throw new UnsupportedOperationException();
+    }
+
     public void processAnswer(SessionDescription remoteAnswer) {
+
+
 
     }
 
@@ -92,15 +110,55 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
     }
 
+    public boolean startLocalMedia() {
+        connection.startVideoSource();
+        return true;
+    }
 
-    private void createPeerConnectionAndOffer() {
+    public void stopLocalMedia() {
+        connection.stopVideoSource();
+    }
+
+    public void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
+
+    }
+
+    public boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
+        return false;
+    }
+
+    public boolean videoEnabled(){
+        return false;
+    }
+
+    public void enableVideo(boolean enable){
+
+    }
+
+    public boolean audioEnabled(){
+        return false;
+    }
+
+    public void enableAudio(boolean enable){
+
+    }
+
+    public boolean videoAuthorized(){
+        return false;
+    }
+
+    public boolean audioAuthorized(){
+        return false;
+    }
+
+    private void createPeerConnection() {
         if (signalingParameters != null) {
 
         //                  Log.w(TAG, "EGL context is ready after room connection.");
 //                    onConnectedToServerInternal(signalingParameters);
 //                }
             connection.createPeerConnection(VideoRendererGui.getEGLContext(),
-                    localRender, remoteRender, signalingParameters);
+                                            localRender, remoteRender, signalingParameters);
 
 
         }
@@ -108,7 +166,7 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
     @Override
     public void onLocalDescription(SessionDescription sdp) {
-
+        observer.onLocalSdpAnswerGenerated(sdp);
     }
 
     @Override
@@ -145,5 +203,3 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
 
 
 
-
-}
