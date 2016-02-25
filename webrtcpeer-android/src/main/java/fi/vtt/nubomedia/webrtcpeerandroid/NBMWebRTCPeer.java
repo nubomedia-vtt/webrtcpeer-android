@@ -338,12 +338,12 @@ public class NBMWebRTCPeer{
     }
 
     public void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
-
+        mediaManager.attachRendererToRemoteStream(remoteRender, remoteStream);
     }
 
 
     public void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
-
+        mediaManager.selectCameraPosition(position);
     }
 
     public boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
