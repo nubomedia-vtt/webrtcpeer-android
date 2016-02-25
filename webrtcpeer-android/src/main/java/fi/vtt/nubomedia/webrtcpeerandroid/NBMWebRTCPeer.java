@@ -7,6 +7,7 @@ import org.webrtc.IceCandidate;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnection.IceConnectionState;
+import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.StatsReport;
 import org.webrtc.VideoRenderer;
@@ -14,51 +15,141 @@ import org.webrtc.VideoRendererGui;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
+
+import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
+
 
 /**
  *
  */
-public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
+public class NBMWebRTCPeer{
 
     NBMMediaConfiguration config;
     Context context;
 
-    PeerConnectionClient connection;
-    PeerConnectionClient.PeerConnectionParameters peerConnectionParameters;
+    NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
 
-    PeerConnectionClient.SignalingParameters signalingParameters;
+    NBMWebRTCPeer.SignalingParameters signalingParameters;
 
     private VideoRenderer.Callbacks localRender;
     private VideoRenderer.Callbacks remoteRender;
 
     private Observer observer;
+    private static final String TAG = "NBMWebRTCPeer";
+
+    private final LooperExecutor executor;
+    // PeerConnectionFactory internals. Move to separate static class?
+    private static final String FIELD_TRIAL_VP9 = "WebRTC-SupportVP9/Enabled/";
+    private static final String FIELD_TRIAL_AUTOMATIC_RESIZE = "WebRTC-MediaCodecVideoEncoder-AutomaticResize/Enabled/";
+
+    private PeerConnectionFactory factory;
+    private PeerConnectionResourceManager connectionManager;
+
+    private MediaResourceManager mediaManager;
 
 
     public interface Observer {
-        void onLocalSdpOfferGenerated(SessionDescription localSdpOffer);
+        void onLocalSdpOfferGenerated(SessionDescription localSdpOffer, NBMPeerConnection connection);
         /* Not implemented yet  */
-        void onLocalSdpAnswerGenerated(SessionDescription localSdpAnswer);
+        void onLocalSdpAnswerGenerated(SessionDescription localSdpAnswer, NBMPeerConnection connection);
 
-        void onIceCandicate(IceCandidate localIceCandidate);
+        void onIceCandicate(IceCandidate localIceCandidate, NBMPeerConnection connection);
 
-        void onIceStatusChanged(IceConnectionState state);
+        void onIceStatusChanged(IceConnectionState state, NBMPeerConnection connection);
 
-        void onRemoteStreamAdded(MediaStream stream);
+        void onRemoteStreamAdded(MediaStream stream, NBMPeerConnection connection);
 
-        void onRemoteStreamRemoved(MediaStream stream);
+        void onRemoteStreamRemoved(MediaStream stream, NBMPeerConnection connection);
+
+        void onPeerConnectionError(String error);
+    }
+
+    /**
+     * Struct holding the signaling parameters
+     */
+    public static class SignalingParameters {
+        public final List<PeerConnection.IceServer> iceServers;
+        public final boolean initiator;
+        public final String clientId;
+        public final SessionDescription offerSdp;
+        public final List<IceCandidate> iceCandidates;
+
+        public SignalingParameters(
+                List<PeerConnection.IceServer> iceServers,
+                boolean initiator, String clientId,
+                SessionDescription offerSdp, List<IceCandidate> iceCandidates) {
+            this.iceServers = iceServers;
+            this.initiator = initiator;
+            this.clientId = clientId;
+            this.offerSdp = offerSdp;
+            this.iceCandidates = iceCandidates;
+        }
     }
 
 
 
+    /**
+     * Peer connection parameters.
+     */
+    public static class NBMPeerConnectionParameters {
+        public final boolean videoCallEnabled;
+        public final boolean loopback;
+        public final int videoWidth;
+        public final int videoHeight;
+        public final int videoFps;
+        public final int videoStartBitrate;
+        public final String videoCodec;
+        public final boolean videoCodecHwAcceleration;
+        public final int audioStartBitrate;
+        public final String audioCodec;
+        public final boolean noAudioProcessing;
+        public final boolean cpuOveruseDetection;
+
+        public NBMPeerConnectionParameters(
+                boolean videoCallEnabled,
+                boolean loopback,
+                int videoWidth,
+                int videoHeight,
+                int videoFps,
+                int videoStartBitrate,
+                String videoCodec,
+                boolean videoCodecHwAcceleration,
+                int audioStartBitrate,
+                String audioCodec,
+                boolean noAudioProcessing,
+                boolean cpuOveruseDetection) {
+            this.videoCallEnabled = videoCallEnabled;
+            this.loopback = loopback;
+            this.videoWidth = videoWidth;
+            this.videoHeight = videoHeight;
+            this.videoFps = videoFps;
+            this.videoStartBitrate = videoStartBitrate;
+            this.videoCodec = videoCodec;
+            this.videoCodecHwAcceleration = videoCodecHwAcceleration;
+            this.audioStartBitrate = audioStartBitrate;
+            this.audioCodec = audioCodec;
+            this.noAudioProcessing = noAudioProcessing;
+            this.cpuOveruseDetection = cpuOveruseDetection;
+        }
+    }
+
+
     public NBMWebRTCPeer(NBMMediaConfiguration config, Context context,
-                         VideoRenderer.Callbacks localRenderer, VideoRenderer.Callbacks remoteRenderer, Observer observer) {
+                         VideoRenderer.Callbacks localRenderer, Observer observer) {
         this.config = config;
         this.context = context;
 
-        localRenderer = localRenderer;
-        remoteRender = remoteRenderer;
+        localRender = localRenderer;
 
-        peerConnectionParameters = new PeerConnectionClient.PeerConnectionParameters(true, true,
+        executor = new LooperExecutor();
+        // Looper thread is started once in private ctor and is used for all
+        // peer connection API calls to ensure new peer connection factory is
+        // created on the same thread as previously destroyed factory.
+        executor.requestStart();
+
+
+        peerConnectionParameters = new NBMWebRTCPeer.NBMPeerConnectionParameters(true, true,
                          config.getReceiverVideoFormat().width, config.getReceiverVideoFormat().heigth,
                         (int)config.getReceiverVideoFormat().frameRate, config.getVideoBandwidth(), config.getVideoCodec().toString(), true,
                         config.getAudioBandwidth(), config.getAudioCodec().toString(),false, true);
@@ -67,73 +158,204 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
         LinkedList<PeerConnection.IceServer> iceServers = new LinkedList<PeerConnection.IceServer>();
         iceServers.add(new PeerConnection.IceServer("stun:stun.l.google.com:19302"));
 
-        signalingParameters = new PeerConnectionClient.SignalingParameters(iceServers,true,"",null,null);
+
+
+
+        signalingParameters = new NBMWebRTCPeer.SignalingParameters(iceServers,true,"",null,null);
+
+        this.observer = observer;
+
+
 
     }
 
 
     public void initialize() {
         //            Log.d(TAG, "Creating peer connection factory");
-        connection = PeerConnectionClient.getInstance();
+//        connection = PeerConnectionClient.getInstance();
 
-        connection.createPeerConnectionFactory(context,
-                peerConnectionParameters, this);
+//        connection.createPeerConnectionFactory(context,
+//                peerConnectionParameters, this);
+
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+
+
+                createPeerConnectionFactoryInternal(context);
+                connectionManager = new PeerConnectionResourceManager(peerConnectionParameters, executor, factory);
+
+                mediaManager = new MediaResourceManager(peerConnectionParameters, executor, factory);
+                mediaManager.createMediaConstraints();
+
+            }
+        });
+
 
     }
 
 
 
+    private class GenerateOfferTask implements Runnable {
+
+
+        String connectionId;
+
+        private GenerateOfferTask(String connectionId){
+            this.connectionId = connectionId;
+        }
+
+
+        public void run() {
+            if (mediaManager.getLocalMediaStream() == null) {
+                startLocalMediaSync();
+            }
+
+            NBMPeerConnection connection = connectionManager.getConnection(connectionId);
+
+            if (connection == null) {
+                if (signalingParameters != null) {
+                    connection = connectionManager.createPeerConnection(signalingParameters,
+                            mediaManager.getPcConstraints(), connectionId);
+
+                    connection.addObserver(mediaManager);
+                    connection.getPc().addStream(mediaManager.getLocalMediaStream());
+
+                    // Create offer. Offer SDP will be sent to answering client in
+                    // PeerConnectionEvents.onLocalDescription event.
+                    connection.createOffer(mediaManager.getSdpMediaConstraints());
+                }
+
+            }
+
+        }
+
+    }
 
     public void generateOffer(String connectionId){
 
-        // Create connection and initialise local stream
-        createPeerConnection();
+        executor.execute(new GenerateOfferTask(connectionId));
 
-        // Create offer. Offer SDP will be sent to answering client in
-        // PeerConnectionEvents.onLocalDescription event.
-        connection.createOffer();
     }
 
-    public void processOffer(SessionDescription remoteOffer) {
-        throw new UnsupportedOperationException();
+    private class ProcessOfferTask implements Runnable {
+
+
+        SessionDescription remoteOffer;
+        String connectionId;
+
+
+        private ProcessOfferTask(SessionDescription remoteOffer, String connectionId){
+            this.remoteOffer = remoteOffer;
+            this.connectionId = connectionId;
+        }
+
+
+        public void run() {
+//            if (mediaManager.getLocalMediaStream() == null) {
+//                startLocalMediaSync();
+//            }
+
+            NBMPeerConnection connection = connectionManager.getConnection(connectionId);
+
+            if (connection == null) {
+                if (signalingParameters != null) {
+                    connection = connectionManager.createPeerConnection(signalingParameters,
+                            mediaManager.getPcConstraints(), connectionId);
+
+                    connection.setRemoteDescriptionSync(remoteOffer);
+                    // Create offer. Offer SDP will be sent to answering client in
+                    // PeerConnectionEvents.onLocalDescription event.
+                    connection.createAnswer(mediaManager.getSdpMediaConstraints());
+                }
+
+            }
+
+        }
+
     }
 
-    public void processAnswer(SessionDescription remoteAnswer) {
-        connection.setRemoteDescription(remoteAnswer);
+
+    public void processOffer(SessionDescription remoteOffer, String connectionId) {
+        executor.execute(new ProcessOfferTask(remoteOffer, connectionId));
     }
 
-    public void addRemoteIceCandidate(IceCandidate remoteIceCandidate) {
-        connection.addRemoteIceCandidate(remoteIceCandidate);
+    public void processAnswer(SessionDescription remoteAnswer, String connectionId) {
+        NBMPeerConnection connection = connectionManager.getConnection(connectionId);
+
+        if (connection != null) {
+            connection.setRemoteDescription(remoteAnswer);
+        } else {
+            observer.onPeerConnectionError("Connection for id " + connectionId + " cannot be found!");
+        }
     }
 
-    public void closeConnection(){
-        connection.close();
+    public void addRemoteIceCandidate(IceCandidate remoteIceCandidate, String connectionId) {
+        NBMPeerConnection connection = connectionManager.getConnection(connectionId);
+
+        if (connection != null) {
+            connection.addRemoteIceCandidate(remoteIceCandidate);
+        } else {
+            observer.onPeerConnectionError("Connection for id " + connectionId + " cannot be found!");
+        }
     }
 
+    public void closeConnection(String connectionId){
+        connectionManager.closeConnection(connectionId);
+    }
+
+    public void close(){
+        connectionManager.close();
+        mediaManager.close();
+    }
+
+    private boolean startLocalMediaSync() {
+        if (mediaManager != null && mediaManager.getLocalMediaStream() == null) {
+            mediaManager.createLocalMediaStream(VideoRendererGui.getEGLContext(), localRender);
+            mediaManager.startVideoSource();
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     public boolean startLocalMedia() {
-        connection.startVideoSource();
-        return true;
+        if (mediaManager != null && mediaManager.getLocalMediaStream() == null) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    startLocalMediaSync();
+                }
+            });
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void stopLocalMedia() {
-        connection.stopVideoSource();
+        mediaManager.stopVideoSource();
     }
+
+    public void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
+
+    }
+
 
     public void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
 
     }
 
     public boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
-        return false;
+        return mediaManager.hasCameraPosition(position);
     }
 
     public boolean videoEnabled(){
-        return false;
+        return mediaManager.getVideoEnabled();
     }
 
     public void enableVideo(boolean enable){
-
+        mediaManager.setVideoEnabled(enable);
     }
 
     public boolean audioEnabled(){
@@ -152,53 +374,36 @@ public class NBMWebRTCPeer implements PeerConnectionClient.PeerConnectionEvents{
         return false;
     }
 
-    private void createPeerConnection() {
-        if (signalingParameters != null) {
-
-        //                  Log.w(TAG, "EGL context is ready after room connection.");
-//                    onConnectedToServerInternal(signalingParameters);
-//                }
-            connection.createPeerConnection(VideoRendererGui.getEGLContext(),
-                                            localRender, remoteRender, signalingParameters);
 
 
+    /**
+     *
+     * @param context
+     */
+    private void createPeerConnectionFactoryInternal(Context context) {
+        Log.d(TAG, "Create peer connection factory. Use video: " + peerConnectionParameters.videoCallEnabled);
+//        isError = false;
+        // Initialize field trials.
+        String field_trials = FIELD_TRIAL_AUTOMATIC_RESIZE;
+        // Check if VP9 is used by default.
+        if (peerConnectionParameters.videoCallEnabled && peerConnectionParameters.videoCodec != null &&
+                peerConnectionParameters.videoCodec.equals(NBMMediaConfiguration.NBMVideoCodec.VP9.toString())) {
+            field_trials += FIELD_TRIAL_VP9;
         }
+        if (!PeerConnectionFactory.initializeAndroidGlobals(context, true, true, peerConnectionParameters.videoCodecHwAcceleration)) {
+            observer.onPeerConnectionError("Failed to initializeAndroidGlobals");
+        }
+        factory = new PeerConnectionFactory();
+        // ToDo: What about these options?
+//        if (options != null) {
+//            Log.d(TAG, "Factory networkIgnoreMask option: " + options.networkIgnoreMask);
+//            factory.setOptions(options);
+//        }
+        Log.d(TAG, "Peer connection factory created.");
     }
 
-    @Override
-    public void onLocalDescription(SessionDescription sdp) {
-        observer.onLocalSdpOfferGenerated(sdp);
-    }
 
-    @Override
-    public void onIceCandidate(IceCandidate candidate) {
-        observer.onIceCandicate(candidate);
-    }
 
-    @Override
-    public void onIceConnected() {
-        observer.onIceStatusChanged(IceConnectionState.CONNECTED);
-    }
-
-    @Override
-    public void onIceDisconnected() {
-        observer.onIceStatusChanged(IceConnectionState.DISCONNECTED);
-    }
-
-    @Override
-    public void onPeerConnectionClosed() {
-        observer.onIceStatusChanged(IceConnectionState.CLOSED);
-    }
-
-    @Override
-    public void onPeerConnectionStatsReady(StatsReport[] reports) {
-
-    }
-
-    @Override
-    public void onPeerConnectionError(String description) {
-
-    }
 }
 
 
