@@ -23,9 +23,41 @@ import java.util.HashMap;
 import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
 
 /**
- * Created by tmtoni on 24.2.2016.
+ * The class implements the management of media resources.
+ *
+ * The implementation is based on PeerConnectionClient.java of package org.appspot.apprtc
+ * (please see the copyright notice below)
  */
-class MediaResourceManager implements NBMWebRTCPeer.Observer {
+
+/*
+ * libjingle
+ * Copyright 2014 Google Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *  3. The name of the author may not be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
+final class MediaResourceManager implements NBMWebRTCPeer.Observer {
 
     private static final String TAG = "MediaResourceManager";
 
@@ -78,7 +110,7 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private VideoCapturerAndroid videoCapturer;
     private NBMMediaConfiguration.NBMCameraPosition currentCameraPosition;
 
-    protected MediaResourceManager(NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters,
+    MediaResourceManager(NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters,
                                 LooperExecutor executor, PeerConnectionFactory factory){
         this.peerConnectionParameters = peerConnectionParameters;
 
@@ -88,7 +120,7 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
     }
 
 
-    protected void createMediaConstraints() {
+    void createMediaConstraints() {
         // Create peer connection constraints.
         pcConstraints = new MediaConstraints();
         // Enable DTLS for normal calls and disable for loopback calls.
@@ -151,20 +183,20 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
         }
     }
 
-    protected MediaConstraints getPcConstraints(){
+    MediaConstraints getPcConstraints(){
         return pcConstraints;
     }
 
-    protected MediaConstraints getSdpMediaConstraints(){
+    MediaConstraints getSdpMediaConstraints(){
         return sdpMediaConstraints;
     }
 
-    protected MediaStream getLocalMediaStream() {
+    MediaStream getLocalMediaStream() {
         return localMediaStream;
     }
 
 
-    protected void stopVideoSource() {
+    void stopVideoSource() {
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -180,7 +212,7 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
     /**
      *
      */
-    protected void startVideoSource() {
+    void startVideoSource() {
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -228,7 +260,7 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
 
     }
 
-    public void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
+    void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
         executor.execute(new AttachRendererTask(remoteRender, remoteStream));
     }
 
@@ -237,7 +269,7 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
      *
      * @param renderEGLContext
      */
-    protected void createLocalMediaStream(EGLContext renderEGLContext,final VideoRenderer.Callbacks localRender) {
+    void createLocalMediaStream(EGLContext renderEGLContext,final VideoRenderer.Callbacks localRender) {
         if (factory == null) { // || isError) {
             Log.e(TAG, "Peerconnection factory is not created");
             return;
@@ -302,7 +334,7 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
 
     }
 
-    protected void setVideoEnabled(final boolean enable) {
+    void setVideoEnabled(final boolean enable) {
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -317,11 +349,11 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
         });
     }
 
-    protected boolean getVideoEnabled(){
+    boolean getVideoEnabled(){
         return renderVideo;
     }
 
-    protected boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
+    boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
         boolean retMe = false;
 
         String backName = CameraEnumerationAndroid.getNameOfBackFacingDevice();
@@ -343,7 +375,7 @@ class MediaResourceManager implements NBMWebRTCPeer.Observer {
         return retMe;
     }
 
-    protected void close(){
+    void close(){
         localMediaStream.dispose();
         localMediaStream = null;
         videoCapturer.dispose();
