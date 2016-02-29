@@ -105,7 +105,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
             @Override
             public void run() {
                 for (NBMWebRTCPeer.Observer observer : observers) {
-                    observer.onIceCandicate(iceCandidate, NBMPeerConnection.this);
+                    observer.onIceCandidate(iceCandidate, NBMPeerConnection.this);
                 }
             }
         });

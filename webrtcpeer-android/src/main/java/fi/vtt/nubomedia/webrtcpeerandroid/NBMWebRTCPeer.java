@@ -87,7 +87,7 @@ public class NBMWebRTCPeer{
         /* Not implemented yet  */
         void onLocalSdpAnswerGenerated(SessionDescription localSdpAnswer, NBMPeerConnection connection);
 
-        void onIceCandicate(IceCandidate localIceCandidate, NBMPeerConnection connection);
+        void onIceCandidate(IceCandidate localIceCandidate, NBMPeerConnection connection);
 
         void onIceStatusChanged(IceConnectionState state, NBMPeerConnection connection);
 

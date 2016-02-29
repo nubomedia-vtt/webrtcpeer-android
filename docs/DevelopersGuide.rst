@@ -34,11 +34,9 @@ First, necessary WebRTC classes have to be imported to the project:
 
 .. code-block:: java
 
-    import org.webrtc.VideoRenderer;
-    import org.webrtc.VideoRendererGui;
-    import org.webrtc.SessionDescription;
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration;
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMWebRTCPeer;
+	import fi.vtt.nubomedia.webrtcpeerandroid.NBMPeerConnection;
     // Also import NBMMediaConfiguration content for ease-of-reading when making configuration
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration.*;
 
@@ -63,12 +61,11 @@ Or it can be inherited to a separate class:
         /* Class declaration */
     }
 
-For rendering local and remote content, video rendered callbacks instances must be declared:
+For rendering local content, video renderer callbacks instance must be declared:
 
 .. code-block:: java
 
         VideoRenderer.Callbacks localRender = VideoRendererGui.create( args... );
-        VideoRenderer.Callbacks remoteRender = VideoRendererGui.create( args... );
     
 Before creating ``NBMWebRTCPeer``, the main component used to setup a WebRTC media session, a configuration object (``NBMMediaConfiguration``) must be defined:
 
@@ -99,7 +96,7 @@ Default values can be changed by using an alternative constructor. Different ima
 
 .. code-block:: java
 
-    NBMWebRTCPeer nbmWebRTCPeer = new NBMWebRTCPeer(mediaConfiguration, this, localRender, remoteRender, myObserver);
+    NBMWebRTCPeer nbmWebRTCPeer = new NBMWebRTCPeer(mediaConfiguration, this, localRender, myObserver);
     nbmWebRTCPeer.initialize();
 
 The following is a minimalistic example of implementing a class with Android WebRTC configured:
@@ -114,6 +111,7 @@ The following is a minimalistic example of implementing a class with Android Web
     import org.webrtc.MediaStream;
     import org.webrtc.PeerConnection.IceConnectionState;
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration;
+    import fi.vtt.nubomedia.webrtcpeerandroid.NBMPeerConnection;
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMWebRTCPeer;
     
     public class MyWebRTCApp implements NBMWebRTCPeer.Observer {
