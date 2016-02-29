@@ -214,7 +214,7 @@ public class NBMWebRTCPeer{
                 connectionManager = new PeerConnectionResourceManager(peerConnectionParameters, executor, factory);
 
                 mediaManager = new MediaResourceManager(peerConnectionParameters, executor, factory);
-                mediaManager.createMediaConstraints();
+
 
             }
         });
@@ -236,6 +236,7 @@ public class NBMWebRTCPeer{
 
         public void run() {
             if (mediaManager.getLocalMediaStream() == null) {
+                mediaManager.createMediaConstraints();
                 startLocalMediaSync();
             }
 
@@ -243,6 +244,8 @@ public class NBMWebRTCPeer{
 
             if (connection == null) {
                 if (signalingParameters != null) {
+
+
                     connection = connectionManager.createPeerConnection(signalingParameters,
                             mediaManager.getPcConstraints(), connectionId);
 
@@ -344,6 +347,7 @@ public class NBMWebRTCPeer{
 
     private boolean startLocalMediaSync() {
         if (mediaManager != null && mediaManager.getLocalMediaStream() == null) {
+
             mediaManager.createLocalMediaStream(VideoRendererGui.getEGLContext(), localRender);
             mediaManager.startVideoSource();
             return true;
@@ -423,6 +427,8 @@ public class NBMWebRTCPeer{
                 peerConnectionParameters.videoCodec.equals(NBMMediaConfiguration.NBMVideoCodec.VP9.toString())) {
             field_trials += FIELD_TRIAL_VP9;
         }
+        PeerConnectionFactory.initializeFieldTrials(field_trials);
+
         if (!PeerConnectionFactory.initializeAndroidGlobals(context, true, true, peerConnectionParameters.videoCodecHwAcceleration)) {
             observer.onPeerConnectionError("Failed to initializeAndroidGlobals");
         }

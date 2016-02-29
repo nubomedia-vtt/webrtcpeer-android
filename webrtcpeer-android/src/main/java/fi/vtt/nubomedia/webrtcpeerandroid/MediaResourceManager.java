@@ -116,6 +116,8 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         this.localMediaStream = null;
         this.executor = executor;
         this.factory = factory;
+        renderVideo = true;
+        remoteVideoTracks = new HashMap<MediaStream, VideoTrack>();
         videoCallEnabled = peerConnectionParameters.videoCallEnabled;
     }
 
@@ -250,10 +252,14 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
             this.remoteStream = remoteStream;
         }
         public void run() {
+            Log.d(TAG, "Attaching VideoRenderer to remote stream (" + remoteStream + ")");
+
             if (remoteStream.videoTracks.size() == 1) {
                 VideoTrack remoteVideoTrack = remoteStream.videoTracks.get(0);
-                    remoteVideoTrack.setEnabled(renderVideo);
-                    remoteVideoTrack.addRenderer(new VideoRenderer(remoteRender));
+                remoteVideoTrack.setEnabled(renderVideo);
+                remoteVideoTrack.addRenderer(new VideoRenderer(remoteRender));
+                remoteVideoTracks.put(remoteStream, remoteVideoTrack);
+                Log.d(TAG, "Attached.");
             }
 
         }
@@ -261,6 +267,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     }
 
     void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
+        Log.d(TAG, "Schedule attaching VideoRenderer to remote stream (" + remoteStream + ")");
         executor.execute(new AttachRendererTask(remoteRender, remoteStream));
     }
 
@@ -274,6 +281,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
             Log.e(TAG, "Peerconnection factory is not created");
             return;
         }
+        Log.d(TAG, "RenderEGLContext: " + renderEGLContext);
         this.localRender = localRender;
 
         Log.d(TAG, "PCConstraints: " + pcConstraints.toString());
