@@ -113,7 +113,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     MediaResourceManager(NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters,
                                 LooperExecutor executor, PeerConnectionFactory factory){
         this.peerConnectionParameters = peerConnectionParameters;
-
+        this.localMediaStream = null;
         this.executor = executor;
         this.factory = factory;
         videoCallEnabled = peerConnectionParameters.videoCallEnabled;
@@ -280,6 +280,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         if (videoConstraints != null) {
             Log.d(TAG, "VideoConstraints: " + videoConstraints.toString());
         }
+        Log.w(TAG, "PCConstraints: " + pcConstraints.toString());
         if (videoCallEnabled) {
             Log.d(TAG, "EGLContext: " + renderEGLContext);
             factory.setVideoHwAccelerationOptions(renderEGLContext);
@@ -301,7 +302,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
             videoCapturer = VideoCapturerAndroid.create(cameraDeviceName, null);
             if (videoCapturer == null) {
                 // ToDo: reporting interface
-//                reportError("Failed to open camera");
+                Log.d(TAG, "Error while opening camera");
                 return;
             }
             localMediaStream.addTrack(createCapturerVideoTrack(videoCapturer));
@@ -309,7 +310,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         localMediaStream.addTrack(factory.createAudioTrack(AUDIO_TRACK_ID, factory.createAudioSource(audioConstraints)));
 
 //        peerConnection.addStream(mediaStream);
-        Log.d(TAG, "Peer connection created.");
+        Log.d(TAG, "Local media stream created.");
     }
 
     private void switchCameraInternal() {
@@ -391,7 +392,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     }
 
     @Override
-    public void onIceCandicate(IceCandidate localIceCandidate, NBMPeerConnection connection) {
+    public void onIceCandidate(IceCandidate localIceCandidate, NBMPeerConnection connection) {
     }
 
     @Override

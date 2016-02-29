@@ -182,7 +182,7 @@ public class NBMWebRTCPeer{
         executor.requestStart();
 
 
-        peerConnectionParameters = new NBMWebRTCPeer.NBMPeerConnectionParameters(true, true,
+        peerConnectionParameters = new NBMWebRTCPeer.NBMPeerConnectionParameters(true, false,
                          config.getReceiverVideoFormat().width, config.getReceiverVideoFormat().heigth,
                         (int)config.getReceiverVideoFormat().frameRate, config.getVideoBandwidth(), config.getVideoCodec().toString(), true,
                         config.getAudioBandwidth(), config.getAudioCodec().toString(),false, true);
@@ -246,6 +246,7 @@ public class NBMWebRTCPeer{
                     connection = connectionManager.createPeerConnection(signalingParameters,
                             mediaManager.getPcConstraints(), connectionId);
 
+                    connection.addObserver(NBMWebRTCPeer.this.observer);
                     connection.addObserver(mediaManager);
                     connection.getPc().addStream(mediaManager.getLocalMediaStream());
 
