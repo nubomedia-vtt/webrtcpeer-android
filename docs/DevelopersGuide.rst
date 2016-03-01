@@ -36,7 +36,7 @@ First, necessary WebRTC classes have to be imported to the project:
 
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration;
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMWebRTCPeer;
-	import fi.vtt.nubomedia.webrtcpeerandroid.NBMPeerConnection;
+    import fi.vtt.nubomedia.webrtcpeerandroid.NBMPeerConnection;
     // Also import NBMMediaConfiguration content for ease-of-reading when making configuration
     import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration.*;
 
@@ -81,7 +81,7 @@ Before creating ``NBMWebRTCPeer``, the main component used to setup a WebRTC med
     */
     mediaConfiguration = new NBMMediaConfiguration();
     
-Default values can be changed by using an alternative constructor. Different image formats are documented in module ``android.graphics.ImageFormat``.
+Default values can be changed by using an alternative constructor. Different image formats are declared in module ``android.graphics.ImageFormat``.
 
 .. code-block:: java
 
@@ -116,25 +116,24 @@ The following is a minimalistic example of implementing a class with Android Web
     
     public class MyWebRTCApp implements NBMWebRTCPeer.Observer {
         VideoRenderer.Callbacks localRender;
-        VideoRenderer.Callbacks remoteRender;
         NBMWebRTCPeer nbmWebRTCPeer;
         
         public MyWebRTCApp()
         {
             localRender = VideoRendererGui.create(72,72,25,25,RendererCommon.ScalingType.SCALE_ASPECT_FILL,false);
-            remoteRender = VideoRendererGui.create(0,0,100,100,RendererCommon.ScalingType.SCALE_ASPECT_FILL,true);
             mediaConfiguration = new NBMMediaConfiguration();
-            nbmWebRTCPeer = new NBMWebRTCPeer(mediaConfiguration, this, localRender, remoteRender, this);
+            nbmWebRTCPeer = new NBMWebRTCPeer(mediaConfiguration, this, localRender, this);
             nbmWebRTCPeer.initialize();
         }
         
         /* Observer methods and the rest of declarations */
-        public void onLocalSdpOfferGenerated(SessionDescription localSdpOffer) { ... }
-        public void onLocalSdpAnswerGenerated(SessionDescription localSdpAnswer) { ... }
-        public void onIceCandicate(IceCandidate localIceCandidate) { ... }
-        public void onIceStatusChanged(IceConnectionState state) { ... }
-        public void onRemoteStreamAdded(MediaStream stream) { ... }
-        public void onRemoteStreamRemoved(MediaStream stream) { ... }
+        public void onLocalSdpOfferGenerated(SessionDescription localSdpOffer, NBMPeerConnection connection) { ... }
+        public void onLocalSdpAnswerGenerated(SessionDescription localSdpAnswer, NBMPeerConnection connection) { ... }
+        public void onIceCandidate(IceCandidate localIceCandidate, NBMPeerConnection connection) { ... }
+        public void onIceStatusChanged(IceConnectionState state, NBMPeerConnection connection) { ... }
+        public void onRemoteStreamAdded(MediaStream stream, NBMPeerConnection connection) { ... }
+        public void onRemoteStreamRemoved(MediaStream stream, NBMPeerConnection connection) { ... }
+        public void onPeerConnectionError(String error) { ... }
     }
     
     
@@ -146,7 +145,7 @@ An Offer SDP (Session Description Protocol) is metadata that describes to the ot
 
     nbmWebRTCPeer.generateOffer("connectionId");
     
-When the offer is generated, a ``NBMWebRTCPeer.Observer.onLocalSdpOfferGenerated`` callback is triggered:
+When the offer is generated, a ``onLocalSdpOfferGenerated`` callback is triggered:
 
 .. code-block:: java
     
@@ -185,3 +184,15 @@ Tricke ICE #2 : Set remote candidates
 .. code-block:: java
     
     addRemoteIceCandidate(remoteIceCandidate);
+
+Set remote renderer
+-------------------------------------
+Each connection may invoke a remote stream addition callback function. To display the remote stream, ``attachRendererToRemoteStream`` can be called inside ``onRemoteStreamAdded`` callback function. An example for point-to-point video application:
+
+.. code-block:: java
+
+    private VideoRenderer.Callbacks remoteRender;
+    
+    public void onRemoteStreamAdded(MediaStream stream, NBMPeerConnection connection){
+        nbmWebRTCPeer.attachRendererToRemoteStream(remoteRender, stream);
+    }
