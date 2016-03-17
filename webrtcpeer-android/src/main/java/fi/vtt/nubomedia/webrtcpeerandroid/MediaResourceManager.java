@@ -59,32 +59,16 @@ import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
 
 final class MediaResourceManager implements NBMWebRTCPeer.Observer {
 
-    private static final String TAG = "MediaResourceManager";
-
-    private LooperExecutor executor;
-    private PeerConnectionFactory factory;
-
-    private MediaConstraints pcConstraints;
-    private MediaConstraints videoConstraints;
-    private MediaConstraints audioConstraints;
-    private MediaConstraints sdpMediaConstraints;
-
-    private int numberOfCameras;
-    private boolean videoCallEnabled;
-    private boolean renderVideo;
-    private boolean videoSourceStopped;
-
-
-    private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
-
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
+
+    private static final String TAG = "MediaResourceManager";
+    private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
     private static final int HD_VIDEO_WIDTH = 1280;
     private static final int HD_VIDEO_HEIGHT = 720;
     private static final int MAX_VIDEO_WIDTH = 1280;
     private static final int MAX_VIDEO_HEIGHT = 1280;
     private static final int MAX_VIDEO_FPS = 30;
-
     private static final String MAX_VIDEO_WIDTH_CONSTRAINT = "maxWidth";
     private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
     private static final String MAX_VIDEO_HEIGHT_CONSTRAINT = "maxHeight";
@@ -96,17 +80,22 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
     private static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
 
-
+    private LooperExecutor executor;
+    private PeerConnectionFactory factory;
+    private MediaConstraints pcConstraints;
+    private MediaConstraints videoConstraints;
+    private MediaConstraints audioConstraints;
+    private MediaConstraints sdpMediaConstraints;
+    private int numberOfCameras;
+    private boolean videoCallEnabled;
+    private boolean renderVideo;
+    private boolean videoSourceStopped;
     private MediaStream localMediaStream;
     private VideoSource videoSource;
     private VideoTrack localVideoTrack;
-
     private HashMap<MediaStream,VideoTrack> remoteVideoTracks;
-
     private VideoRenderer.Callbacks localRender;
-
-    NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
-
+    private NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
     private VideoCapturerAndroid videoCapturer;
     private NBMMediaConfiguration.NBMCameraPosition currentCameraPosition;
 
@@ -120,7 +109,6 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         remoteVideoTracks = new HashMap<MediaStream, VideoTrack>();
         videoCallEnabled = peerConnectionParameters.videoCallEnabled;
     }
-
 
     void createMediaConstraints() {
         // Create peer connection constraints.
@@ -196,7 +184,6 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     MediaStream getLocalMediaStream() {
         return localMediaStream;
     }
-
 
     void stopVideoSource() {
         executor.execute(new Runnable() {
@@ -385,10 +372,11 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     }
 
     void close(){
+        // Uncomment only if you know what you are doing
         localMediaStream.dispose();
         localMediaStream = null;
-        videoCapturer.dispose();
-        videoCapturer = null;
+        //videoCapturer.dispose();
+        //videoCapturer = null;
     }
 
     @Override

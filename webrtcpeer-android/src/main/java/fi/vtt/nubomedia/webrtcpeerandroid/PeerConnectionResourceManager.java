@@ -88,7 +88,6 @@ final class PeerConnectionResourceManager {
         this.peerConnectionParameters = peerConnectionParameters;
         this.executor = executor;
         this.factory = factory;
-
         videoCallEnabled = peerConnectionParameters.videoCallEnabled;
 
         // Check if H.264 is used by default.
@@ -105,9 +104,7 @@ final class PeerConnectionResourceManager {
         }
 
         connections = new HashMap<String,NBMPeerConnection>();
-
     }
-
 
     /**
      *
@@ -132,10 +129,6 @@ final class PeerConnectionResourceManager {
 //        });
     }
 
-    /**
-     *
-     *
-     */
     private NBMPeerConnection createPeerConnectionInternal(String connectionId) {
         if (factory == null){ // || isError) {
             Log.e(TAG, "Peerconnection factory is not created");
@@ -143,8 +136,6 @@ final class PeerConnectionResourceManager {
         }
         Log.d(TAG, "Create peer connection.");
         Log.d(TAG, "PCConstraints: " + pcConstraints.toString());
-
-
 
         PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(signalingParameters.iceServers);
         // TCP candidates are only useful when connecting to a server that supports ICE-TCP.
@@ -170,8 +161,6 @@ final class PeerConnectionResourceManager {
         return connectionWrapper;
     }
 
-
-
     NBMPeerConnection getConnection(String connectionId){
         return connections.get(connectionId);
     }
@@ -185,7 +174,6 @@ final class PeerConnectionResourceManager {
         if (connection != null){
             connection.close();
         }
-
     }
 
     void close(){
@@ -194,6 +182,5 @@ final class PeerConnectionResourceManager {
         }
         connections.clear();
     }
-
 
 }

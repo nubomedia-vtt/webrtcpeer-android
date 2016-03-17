@@ -55,46 +55,82 @@ import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+/**
+ * Main API class for implementing WebRTC peer on Android
+ */
 public class NBMWebRTCPeer{
 
-    NBMMediaConfiguration config;
-    Context context;
-
-    NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
-
-    NBMWebRTCPeer.SignalingParameters signalingParameters;
-
+    private NBMMediaConfiguration config;
+    private Context context;
+    private NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
+    private NBMWebRTCPeer.SignalingParameters signalingParameters;
     private VideoRenderer.Callbacks localRender;
     private VideoRenderer.Callbacks remoteRender;
-
     private Observer observer;
+    private PeerConnectionFactory factory;
+    private PeerConnectionResourceManager connectionManager;
+    private MediaResourceManager mediaManager;
     private static final String TAG = "NBMWebRTCPeer";
-
     private final LooperExecutor executor;
     // PeerConnectionFactory internals. Move to separate static class?
     private static final String FIELD_TRIAL_VP9 = "WebRTC-SupportVP9/Enabled/";
     private static final String FIELD_TRIAL_AUTOMATIC_RESIZE = "WebRTC-MediaCodecVideoEncoder-AutomaticResize/Enabled/";
 
-    private PeerConnectionFactory factory;
-    private PeerConnectionResourceManager connectionManager;
-
-    private MediaResourceManager mediaManager;
-
-
+    /**
+     * An interface which declares WebRTC callbacks
+     * <p>
+     * This interface class has to be implemented outside API. NBMWebRTCPeer requires an Observer
+     * instance in constructor
+     * </p>
+     */
     public interface Observer {
+
+        /**
+         * WebRTC event which is triggered when local SDP offer has been generated
+         * @param localSdpOffer The generated local SDP offer
+         * @param connection The connection for which this event takes place
+         */
         void onLocalSdpOfferGenerated(SessionDescription localSdpOffer, NBMPeerConnection connection);
-        /* Not implemented yet  */
+
+        /**
+         * WebRTC event which is triggered when local SDP answer has been generated
+         * @param localSdpAnswer The generated local SDP answer
+         * @param connection The connection for which this event takes place
+         */
         void onLocalSdpAnswerGenerated(SessionDescription localSdpAnswer, NBMPeerConnection connection);
 
+        /**
+         * WebRTC event which is triggered when new ice candidate is received
+         * @param localIceCandidate Ice candidate
+         * @param connection The connection for which this event takes place
+         */
         void onIceCandidate(IceCandidate localIceCandidate, NBMPeerConnection connection);
 
+        /**
+         * WebRTC event which is triggered when ICE status has changed
+         * @param state The new ICE connection state
+         * @param connection The connection for which this event takes place
+         */
         void onIceStatusChanged(IceConnectionState state, NBMPeerConnection connection);
 
+        /**
+         * WebRTC event which is triggered when A new remote stream is added to connection
+         * @param stream The new remote media stream
+         * @param connection The connection for which this event takes place
+         */
         void onRemoteStreamAdded(MediaStream stream, NBMPeerConnection connection);
 
+        /**
+         * WebRTC event which is triggered when a remote media stream is terminated
+         * @param stream
+         * @param connection The connection for which this event takes place
+         */
         void onRemoteStreamRemoved(MediaStream stream, NBMPeerConnection connection);
 
+        /**
+         * WebRTC event which is triggered when there is an error with the connection
+         * @param error Error string
+         */
         void onPeerConnectionError(String error);
     }
 
@@ -119,8 +155,6 @@ public class NBMWebRTCPeer{
             this.iceCandidates = iceCandidates;
         }
     }
-
-
 
     /**
      * Peer connection parameters.
@@ -168,71 +202,67 @@ public class NBMWebRTCPeer{
     }
 
 
+	/**
+	* NBMWebRTCPeer constructor
+     * <p>
+     *     This constructor should always be used in order to properly create a NBMWebRTCPeer instance
+     * </p>
+	* @param  config			Media configuration instance
+	* @param  context			Android context instance
+	* @param  localRenderer	    Callback for rendering the locally produced media stream
+	* @param  observer			An observer instance which implements WebRTC callback functions
+	*/
     public NBMWebRTCPeer(NBMMediaConfiguration config, Context context,
                          VideoRenderer.Callbacks localRenderer, Observer observer) {
+
         this.config = config;
         this.context = context;
-
         localRender = localRenderer;
-
         executor = new LooperExecutor();
+
         // Looper thread is started once in private ctor and is used for all
         // peer connection API calls to ensure new peer connection factory is
         // created on the same thread as previously destroyed factory.
         executor.requestStart();
-
 
         peerConnectionParameters = new NBMWebRTCPeer.NBMPeerConnectionParameters(true, false,
                          config.getReceiverVideoFormat().width, config.getReceiverVideoFormat().heigth,
                         (int)config.getReceiverVideoFormat().frameRate, config.getVideoBandwidth(), config.getVideoCodec().toString(), true,
                         config.getAudioBandwidth(), config.getAudioCodec().toString(),false, true);
 
-
         LinkedList<PeerConnection.IceServer> iceServers = new LinkedList<PeerConnection.IceServer>();
         iceServers.add(new PeerConnection.IceServer("stun:stun.l.google.com:19302"));
 
-
-
-
         signalingParameters = new NBMWebRTCPeer.SignalingParameters(iceServers,true,"",null,null);
-
         this.observer = observer;
-
-
-
     }
 
-
+	/**
+	 * Initializes NBMWebRTCPeer
+	 * <p>
+	 * NBMWebRTCPeer must be initialized before use. This function can be called immediately after constructor
+	 * <p>
+	 */
     public void initialize() {
-
         executor.execute(new Runnable() {
             @Override
             public void run() {
-
-
                 createPeerConnectionFactoryInternal(context);
                 connectionManager = new PeerConnectionResourceManager(peerConnectionParameters, executor, factory);
-
                 mediaManager = new MediaResourceManager(peerConnectionParameters, executor, factory);
-
-
             }
         });
-
-
     }
-
-
 
     private class GenerateOfferTask implements Runnable {
 
-
         String connectionId;
+        boolean includeLocalMedia;
 
-        private GenerateOfferTask(String connectionId){
+        private GenerateOfferTask(String connectionId, boolean includeLocalMedia){
             this.connectionId = connectionId;
+            this.includeLocalMedia = includeLocalMedia;
         }
-
 
         public void run() {
             if (mediaManager.getLocalMediaStream() == null) {
@@ -251,42 +281,38 @@ public class NBMWebRTCPeer{
 
                     connection.addObserver(NBMWebRTCPeer.this.observer);
                     connection.addObserver(mediaManager);
-                    connection.getPc().addStream(mediaManager.getLocalMediaStream());
+                    if (includeLocalMedia) {
+                        connection.getPc().addStream(mediaManager.getLocalMediaStream());
+                    }
 
                     // Create offer. Offer SDP will be sent to answering client in
                     // PeerConnectionEvents.onLocalDescription event.
                     connection.createOffer(mediaManager.getSdpMediaConstraints());
                 }
-
             }
-
         }
-
     }
 
-    public void generateOffer(String connectionId){
-
-        executor.execute(new GenerateOfferTask(connectionId));
-
+	/**
+	* Generate SDP offer
+	*
+	* @param  connectionId		A unique identifier for the connection
+	*/
+    public void generateOffer(String connectionId, boolean includeLocalMedia){
+        executor.execute(new GenerateOfferTask(connectionId, includeLocalMedia));
     }
 
     private class ProcessOfferTask implements Runnable {
 
-
         SessionDescription remoteOffer;
         String connectionId;
-
 
         private ProcessOfferTask(SessionDescription remoteOffer, String connectionId){
             this.remoteOffer = remoteOffer;
             this.connectionId = connectionId;
         }
 
-
         public void run() {
-//            if (mediaManager.getLocalMediaStream() == null) {
-//                startLocalMediaSync();
-//            }
 
             NBMPeerConnection connection = connectionManager.getConnection(connectionId);
 
@@ -300,18 +326,27 @@ public class NBMWebRTCPeer{
                     // PeerConnectionEvents.onLocalDescription event.
                     connection.createAnswer(mediaManager.getSdpMediaConstraints());
                 }
-
             }
-
         }
-
     }
 
-
+    /**
+     * Processes received SDP offer
+     * <p>
+     *
+     * <p>
+     * @param remoteOffer The received offer
+     * @param connectionId A unique identifier for the connection
+     */
     public void processOffer(SessionDescription remoteOffer, String connectionId) {
         executor.execute(new ProcessOfferTask(remoteOffer, connectionId));
     }
 
+    /**
+     * Processes received SDP answer
+     * @param remoteAnswer The received answer
+     * @param connectionId A unique identifier for the connection
+     */
     public void processAnswer(SessionDescription remoteAnswer, String connectionId) {
         NBMPeerConnection connection = connectionManager.getConnection(connectionId);
 
@@ -322,6 +357,11 @@ public class NBMWebRTCPeer{
         }
     }
 
+    /**
+     * Adds remote ice candidate for connection
+     * @param remoteIceCandidate The received ICE candidate
+     * @param connectionId A unique identifier for the connection
+     */
     public void addRemoteIceCandidate(IceCandidate remoteIceCandidate, String connectionId) {
         NBMPeerConnection connection = connectionManager.getConnection(connectionId);
 
@@ -332,17 +372,32 @@ public class NBMWebRTCPeer{
         }
     }
 
+    /**
+     * Closes specific connection
+     * @param connectionId A unique identifier for the connection
+     */
     public void closeConnection(String connectionId){
         connectionManager.closeConnection(connectionId);
     }
 
+    /**
+     * Closes all connections
+     */
     public void close(){
-        connectionManager.close();
-        connectionManager = null;
-        mediaManager.close();
-        mediaManager = null;
-        factory.dispose();
-        factory = null;
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                for(NBMPeerConnection c : connectionManager.getConnections()){
+                    c.getPc().removeStream(mediaManager.getLocalMediaStream());
+                }
+                connectionManager.close();
+                mediaManager.close();
+                factory.dispose();
+                connectionManager = null;
+                mediaManager = null;
+                factory = null;
+            }
+        });
     }
 
     private boolean startLocalMediaSync() {
@@ -356,6 +411,10 @@ public class NBMWebRTCPeer{
         }
     }
 
+    /**
+     * Starts local media playback
+     * @return true if local media video source was successfully initiated, otherwise false
+     */
     public boolean startLocalMedia() {
         if (mediaManager != null && mediaManager.getLocalMediaStream() == null) {
             executor.execute(new Runnable() {
@@ -370,53 +429,87 @@ public class NBMWebRTCPeer{
         }
     }
 
+    /**
+     * Stops local media playback
+     */
     public void stopLocalMedia() {
         mediaManager.stopVideoSource();
     }
 
+    /**
+     * Attaches remote stream to renderer
+     * @param remoteRender A render callback for rendering the remote media
+     * @param remoteStream The remote media stream
+     */
     public void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
         mediaManager.attachRendererToRemoteStream(remoteRender, remoteStream);
     }
 
-
+    /**
+     * Select active camera for local media
+     * @param position The camera identifier (usually either back or front camera e.g. in camera)
+     */
     public void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
         mediaManager.selectCameraPosition(position);
     }
 
+    /**
+     * Check if a specific camera is available on the device
+     * @param position The camera position to query
+     * @return true if position is available on the device, otherwise false
+     */
     public boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
         return mediaManager.hasCameraPosition(position);
     }
 
+    /**
+     * Check if video is enabled
+     * @return true if video is enabled, otherwise false
+     */
     public boolean videoEnabled(){
         return mediaManager.getVideoEnabled();
     }
 
+    /**
+     * Enable or disable video
+     * @param enable If true then video will be enabled, if false then video will be disabled
+     */
     public void enableVideo(boolean enable){
         mediaManager.setVideoEnabled(enable);
     }
 
+    /**
+     * Check if audio is enabled
+     * @return true if audio is enabled, otherwise false
+     */
     public boolean audioEnabled(){
         return false;
     }
 
+    /**
+     * Enable or disable audio
+     * @param enable If true then audio will be enabled, if false then audio will be disabled
+     */
     public void enableAudio(boolean enable){
 
     }
 
+    /**
+     * Check if video is authorized
+     * @return true if video is authorized, otherwise false
+     */
     public boolean videoAuthorized(){
         return false;
     }
 
+    /**
+     * Check if audio is authorized
+     * @return true if audio is authorized, otherwise false
+     */
     public boolean audioAuthorized(){
         return false;
     }
 
-
-
-    /**
-     *
-     * @param context
-     */
     private void createPeerConnectionFactoryInternal(Context context) {
         Log.d(TAG, "Create peer connection factory. Use video: " + peerConnectionParameters.videoCallEnabled);
 //        isError = false;
@@ -441,10 +534,4 @@ public class NBMWebRTCPeer{
         Log.d(TAG, "Peer connection factory created.");
     }
 
-
-
 }
-
-
-
-
