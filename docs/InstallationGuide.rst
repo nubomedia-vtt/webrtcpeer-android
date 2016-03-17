@@ -5,8 +5,8 @@ Installation Guide
 This documents provides information how to compile the webrtcpeer-android library from the sources for your project.
 
 
-Clone repository:
-=================
+Clone repository
+================
 .. code:: bash
    
     sudo apt-get install git
