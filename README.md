@@ -4,6 +4,9 @@ This repository contains an Android library for creating WebRTC connections.
 
 This project is part of [NUBOMEDIA](http://www.nubomedia.eu).
 
+Documentation
+--------------------
+
 Documentation is available at: http://webrtcpeer-android.readthedocs.org/en/latest/index.html
 
 Repository structure
