@@ -22,6 +22,16 @@ https://github.com/nubomedia-vtt/webrtcpeer-android/tree/master/javadoc
 Support is provided through the Nubomedia VTT Public Mailing List available at
 https://groups.google.com/forum/#!forum/nubomedia-vtt
 
+WSS support on Android 5.0 (Lollipop) and up
+============================================
+Webrtcpeer-android library uses Maven org.java_websocket:
+http://mvnrepository.com/artifact/org.java-websocket/Java-WebSocket/
+
+However, org.java_websocket version 1.3.0 is not compatible with Android 5.0 and newer systems due to malfunction in wss protocol handshake. Until a newer version is uploaded to Maven, a workaround is to compile a newer version from git:
+https://github.com/TooTallNate/Java-WebSocket
+
+This limitation is known to exist only in wss TSL handshake
+
 Usage
 =====
 
@@ -186,7 +196,7 @@ Tricke ICE #2 : Set remote candidates
     addRemoteIceCandidate(remoteIceCandidate);
 
 Set remote renderer
--------------------------------------
+-------------------
 Each connection may invoke a remote stream addition callback function. To display the remote stream, ``attachRendererToRemoteStream`` can be called inside ``onRemoteStreamAdded`` callback function. An example for point-to-point video application:
 
 .. code-block:: java
