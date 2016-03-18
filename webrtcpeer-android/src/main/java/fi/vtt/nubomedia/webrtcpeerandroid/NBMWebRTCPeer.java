@@ -65,7 +65,6 @@ public class NBMWebRTCPeer{
     private NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
     private NBMWebRTCPeer.SignalingParameters signalingParameters;
     private VideoRenderer.Callbacks localRender;
-    private VideoRenderer.Callbacks remoteRender;
     private Observer observer;
     private PeerConnectionFactory factory;
     private PeerConnectionResourceManager connectionManager;

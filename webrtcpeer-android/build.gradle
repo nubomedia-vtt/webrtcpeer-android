@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: "com.jfrog.bintray"
 
-version "1.0.0"
+version "1.0.2"
 
 android {
     compileSdkVersion 23
@@ -55,9 +55,9 @@ install {
                 }
                 developers {
                     developer {
-                        id 'vvvilleh'
-                        name 'Ville Valjus'
-                        email 'ville.valjus@vtt.fi'
+                        id 'maenpoika'
+                        name 'Toni Mäki'
+                        email 'toni.maki@vtt.fi'
                     }
                 }
                 scm {
@@ -106,6 +106,7 @@ bintray {
         // it is the name that appears in bintray when logged
         name = "webrtcpeer-android"
         websiteUrl = siteUrl
+        userOrg = 'nubomedia-vtt'
         vcsUrl = gitUrl
         licenses = ["BSD 3-Clause"]
         publish = true
