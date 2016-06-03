@@ -21,7 +21,7 @@ import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
  * A peer connection wrapper which is used by NBMWebRTCPeer to support multiple connectivity.
  *
  */
-public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
+public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver, DataChannel.Observer {
 
     private static final String TAG = "NBMPeerConnection";
     private PeerConnection pc;
@@ -34,6 +34,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
     private boolean videoCallEnabled;
     private boolean preferH264;
     private boolean isInitiator;
+    private DataChannel dataChannel;
     private LinkedList<IceCandidate> queuedRemoteCandidates;
     private static final String VIDEO_CODEC_PARAM_START_BITRATE = "x-google-start-bitrate";
     private static final String AUDIO_CODEC_PARAM_BITRATE = "maxaveragebitrate";
@@ -50,6 +51,16 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
         isInitiator = false;
         peerConnectionParameters = params;
         queuedRemoteCandidates = new LinkedList<IceCandidate>();
+    }
+
+    public DataChannel createDataChannel(String label, DataChannel.Init init)
+    {
+        this.dataChannel = this.pc.createDataChannel(label, init);
+        return dataChannel;
+    }
+
+    public DataChannel getDataChannel(){
+        return this.dataChannel;
     }
 
     public void setPc(PeerConnection pc) {
@@ -145,7 +156,28 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
     @Override
     public void onDataChannel(DataChannel dataChannel) {
         for (NBMWebRTCPeer.Observer observer : observers) {
-            observer.onPeerConnectionError("Data channels not supported, but got: " + dataChannel.label());
+            observer.onDataChannel(dataChannel, NBMPeerConnection.this);
+        }
+    }
+
+    @Override
+    public void onBufferedAmountChange(long l) {
+        for (NBMWebRTCPeer.Observer observer : observers) {
+            observer.onBufferedAmountChange(l, NBMPeerConnection.this);
+        }
+    }
+
+    @Override
+    public void onStateChange(){
+        for (NBMWebRTCPeer.Observer observer : observers) {
+            observer.onStateChange(NBMPeerConnection.this);
+        }
+    }
+
+    @Override
+    public void onMessage(DataChannel.Buffer buffer) {
+        for (NBMWebRTCPeer.Observer observer : observers) {
+            observer.onMessage(buffer, NBMPeerConnection.this);
         }
     }
 
@@ -252,16 +284,11 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
 
     public void createOffer(MediaConstraints sdpMediaConstraints) {
-//        executor.execute(new Runnable() {
-//            @Override
-//            public void run() {
         if (pc != null){// && !isError) {
             Log.d(TAG, "PC Create OFFER");
             isInitiator = true;
             pc.createOffer(this,sdpMediaConstraints);
         }
-///            }
-//        });
     }
 
     public void createAnswer(final MediaConstraints sdpMediaConstraints) {
@@ -337,6 +364,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
     private void closeInternal() {
         Log.d(TAG, "Closing peer connection.");
 //        statsTimer.cancel();
+
         if (pc != null) {
             pc.dispose();
             pc = null;

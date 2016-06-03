@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: "com.jfrog.bintray"
 
-version "1.0.0"
+version "1.0.4"
 
 android {
     compileSdkVersion 23
@@ -12,7 +12,7 @@ android {
         minSdkVersion 15
         targetSdkVersion 21
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.4"
     }
     buildTypes {
         release {
@@ -25,9 +25,8 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
-    compile 'fi.vtt.nubomedia:utilities-android:1.0.0'
+    compile 'fi.vtt.nubomedia:utilities-android:1.0.1'
     compile files('libs/libjingle_peerconnection.jar')
-    compile 'com.android.support:appcompat-v7:23.1.0'
 }
 
 def siteUrl = 'https://github.com/nubomedia-vtt/webrtcpeer-android'      // Homepage URL of the library
@@ -105,6 +104,7 @@ bintray {
         repo = "maven"
         // it is the name that appears in bintray when logged
         name = "webrtcpeer-android"
+        userOrg = 'nubomedia-vtt'
         websiteUrl = siteUrl
         vcsUrl = gitUrl
         licenses = ["BSD 3-Clause"]

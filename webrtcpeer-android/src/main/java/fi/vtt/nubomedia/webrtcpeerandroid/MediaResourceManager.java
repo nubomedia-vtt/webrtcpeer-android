@@ -4,6 +4,7 @@ import android.opengl.EGLContext;
 import android.util.Log;
 
 import org.webrtc.CameraEnumerationAndroid;
+import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;
 import org.webrtc.Logging;
 import org.webrtc.MediaCodecVideoEncoder;
@@ -406,5 +407,25 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
 
     @Override
     public void onPeerConnectionError(String error) {
+    }
+
+    @Override
+    public void onDataChannel(DataChannel dataChannel, NBMPeerConnection connection) {
+
+    }
+
+    @Override
+    public void onBufferedAmountChange(long l, NBMPeerConnection connection) {
+
+    }
+
+    @Override
+    public void onStateChange(NBMPeerConnection connection) {
+
+    }
+
+    @Override
+    public void onMessage(DataChannel.Buffer buffer, NBMPeerConnection connection) {
+
     }
 }

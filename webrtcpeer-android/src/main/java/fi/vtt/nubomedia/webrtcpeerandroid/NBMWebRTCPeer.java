@@ -3,6 +3,7 @@ package fi.vtt.nubomedia.webrtcpeerandroid;
 import android.content.Context;
 import android.util.Log;
 
+import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
@@ -132,6 +133,34 @@ public class NBMWebRTCPeer{
          * @param error Error string
          */
         void onPeerConnectionError(String error);
+
+        /**
+         * WebRTC event which is triggered when peer opens a data channel
+         * @param dataChannel The data channel
+         * @param connection The connection for which the data channel belongs to
+         */
+        void onDataChannel(DataChannel dataChannel, NBMPeerConnection connection);
+
+        /**
+         * WebRTC event which is triggered when a data channel buffer amount has changed
+         * @param l The previous amount
+         * @param connection The connection for which the data channel belongs to
+         */
+        void onBufferedAmountChange(long l, NBMPeerConnection connection);
+
+        /**
+         * WebRTC event which is triggered when a data channel state has changed. Possible values:
+         * DataChannel.State { CONNECTING, OPEN, CLOSING, CLOSED };
+         * @param connection The connection for which the data channel belongs to
+         */
+        void onStateChange(NBMPeerConnection connection);
+
+        /**
+         * WebRTC event which is triggered when a message is received from a data channel
+         * @param buffer The message buffer
+         * @param connection The connection for which the data channel belongs to
+         */
+        void onMessage(DataChannel.Buffer buffer, NBMPeerConnection connection);
     }
 
     /**
