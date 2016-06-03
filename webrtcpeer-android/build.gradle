@@ -54,9 +54,9 @@ install {
                 }
                 developers {
                     developer {
-                        id 'vvvilleh'
-                        name 'Ville Valjus'
-                        email 'ville.valjus@vtt.fi'
+                        id 'maenpoika'
+                        name 'Toni Mäki'
+                        email 'toni.maki@vtt.fi'
                     }
                 }
                 scm {
@@ -106,6 +106,7 @@ bintray {
         name = "webrtcpeer-android"
         userOrg = 'nubomedia-vtt'
         websiteUrl = siteUrl
+        userOrg = 'nubomedia-vtt'
         vcsUrl = gitUrl
         licenses = ["BSD 3-Clause"]
         publish = true
