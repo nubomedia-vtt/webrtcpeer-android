@@ -134,6 +134,10 @@ The following is a minimalistic example of implementing a class with Android Web
         public void onRemoteStreamAdded(MediaStream stream, NBMPeerConnection connection) { ... }
         public void onRemoteStreamRemoved(MediaStream stream, NBMPeerConnection connection) { ... }
         public void onPeerConnectionError(String error) { ... }
+        public void onDataChannel(DataChannel dataChannel, NBMPeerConnection connection) { ... }
+        public void onBufferedAmountChange(long l, NBMPeerConnection connection) { ... }
+        public void onStateChange(NBMPeerConnection connection) { ... }
+        public void onMessage(DataChannel.Buffer buffer, NBMPeerConnection connection) { ... }
     }
     
     
@@ -196,3 +200,45 @@ Each connection may invoke a remote stream addition callback function. To displa
     public void onRemoteStreamAdded(MediaStream stream, NBMPeerConnection connection){
         nbmWebRTCPeer.attachRendererToRemoteStream(remoteRender, stream);
     }
+
+Using data channels
+-------------------
+WebRTC DataChannel between peers is available via the API. First, in your ``MyWebRTCApp`` declare a ``DataChannel.Init``:
+
+.. code-block:: java
+
+    DataChannel.Init dcInit = new DataChannel.Init();
+
+Please refer to Google WebRTC documentation on configuring ``DataChannel.Init``. Once you have configured the object accordingly, create datachannels for your the peer connections of your choice. For example, to create one data channel for all active peers in ``MyWebRTCApp``:
+
+.. code-block:: java
+
+    for(NBMPeerConnection c : connectionManager.getConnections()){
+        c.createDataChannel("MyDataChannelLabel", mediaManager.getLocalMediaStream());
+    }
+
+The first parameter of ``createDataChannel`` is a non-unique label which can be used to identify given data channel. However, all callback events of data channels have ``NBMPeerConnection`` as function arguments, which may provide also unique per-peer identification of the channel. In a case that multiple data channels are established to the same peer, or a quick verbose identifier is required, label is a good choice, otherwise use the ``NBMPeerConnection`` instance for identification. You may also save a reference, as ``createDataChannel`` function returns a pointer to the newly created data channel.
+
+Closing data channels explicitly is not necessary, as they are closed along with connections. But whenever it makes sense for e.g. user experience, call ``DataChannel:close()``.
+
+Datachannels use the following callbacks:
+
+.. code-block:: java
+
+    // Triggered when peer opens a data channel
+    public void onDataChannel(DataChannel dataChannel, NBMPeerConnection connection) { 
+        ...
+    }
+    // Triggered when a data channel buffer amount has changed
+    public void onBufferedAmountChange(long l, NBMPeerConnection connection) { 
+        ...
+    }
+    // Triggered when a data channel state has changed. Possible values: DataChannel.State{CONNECTING,OPEN,CLOSING,CLOSED}
+    public void onStateChange(NBMPeerConnection connection) { 
+        ...
+    }
+    // Triggered when a message is received from a data channel
+    public void onMessage(DataChannel.Buffer buffer, NBMPeerConnection connection) { 
+        ...
+    }
+    
