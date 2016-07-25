@@ -26,7 +26,7 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile('fi.vtt.nubomedia:utilities-android:1.0.1@aar') { transitive=true }
-    compile files('libs/libjingle_peerconnection.jar')
+    compile('io.pristine:libjingle:11139@aar') { transitive=true }
 }
 
 def siteUrl = 'https://github.com/nubomedia-vtt/webrtcpeer-android'      // Homepage URL of the library
@@ -79,7 +79,6 @@ task javadoc(type: Javadoc) {
     source = android.sourceSets.main.java.srcDirs
 //    source = fileTree(dir: 'src/main/java').matching{include 'fi/vtt/nubomedia/webrtcpeerandroid/*.java'}
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    classpath += project.files('libs/libjingle_peerconnection.jar')
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {

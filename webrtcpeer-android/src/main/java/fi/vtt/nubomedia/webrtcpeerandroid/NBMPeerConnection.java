@@ -10,6 +10,9 @@ import org.webrtc.PeerConnection;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -21,7 +24,7 @@ import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
  * A peer connection wrapper which is used by NBMWebRTCPeer to support multiple connectivity.
  *
  */
-public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver, DataChannel.Observer {
+public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
     private static final String TAG = "NBMPeerConnection";
     private PeerConnection pc;
@@ -34,10 +37,68 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver, 
     private boolean videoCallEnabled;
     private boolean preferH264;
     private boolean isInitiator;
-    private DataChannel dataChannel;
+    private HashMap<String, ObservedDataChannel> observedDataChannels;
     private LinkedList<IceCandidate> queuedRemoteCandidates;
     private static final String VIDEO_CODEC_PARAM_START_BITRATE = "x-google-start-bitrate";
     private static final String AUDIO_CODEC_PARAM_BITRATE = "maxaveragebitrate";
+
+    /* This private class exists to receive per-channel events and forward them to upper layers
+       with the channel instance
+      */
+    private class ObservedDataChannel implements DataChannel.Observer {
+        private DataChannel channel;
+
+        public ObservedDataChannel(String label, DataChannel.Init init) {
+            channel = pc.createDataChannel(label, init);
+            if (channel != null) {
+                channel.registerObserver(this);
+                Log.i(TAG, "Created data channel with Id: " + label);
+                byte[] rawMessage = "Hello Peer!".getBytes(Charset.forName("UTF-8"));
+                ByteBuffer directData = ByteBuffer.allocateDirect(rawMessage.length);
+                directData.put(rawMessage);
+                directData.flip();
+                DataChannel.Buffer data = new DataChannel.Buffer(directData, false);
+                boolean success = channel.send(data);
+                if (success) {
+                    Log.i(TAG, "[DataChannel] Successfully sent test message");
+                }
+                else {
+                    Log.i(TAG, "[DataChannel] Unable to send test message. State: " + channel.state());
+                }
+            }
+            else {
+                Log.e(TAG, "Failed to create data channel with Id: " + label);
+            }
+        }
+
+        public DataChannel getChannel() {
+            return channel;
+        }
+
+        @Override
+        public void onBufferedAmountChange(long l) {
+            Log.i(TAG, "[Datachannel] NBMPeerConnection onBufferedAmountChange");
+            for (NBMWebRTCPeer.Observer observer : observers) {
+                observer.onBufferedAmountChange(l, NBMPeerConnection.this, channel);
+            }
+        }
+
+        @Override
+        public void onStateChange(){
+            Log.i(TAG, "[Datachannel] NBMPeerConnection onStateChange");
+            for (NBMWebRTCPeer.Observer observer : observers) {
+                observer.onStateChange(NBMPeerConnection.this, channel);
+            }
+        }
+
+        @Override
+        public void onMessage(DataChannel.Buffer buffer) {
+            Log.i(TAG, "[Datachannel] NBMPeerConnection onMessage");
+            for (NBMWebRTCPeer.Observer observer : observers) {
+                observer.onMessage(buffer, NBMPeerConnection.this, channel);
+            }
+        }
+    }
 
     public NBMPeerConnection(String connectionId, boolean preferIsac, boolean videoCallEnabled, boolean preferH264,
                              LooperExecutor executor, NBMWebRTCPeer.NBMPeerConnectionParameters params) {
@@ -51,16 +112,34 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver, 
         isInitiator = false;
         peerConnectionParameters = params;
         queuedRemoteCandidates = new LinkedList<IceCandidate>();
+        observedDataChannels = new HashMap<>();
     }
 
     public DataChannel createDataChannel(String label, DataChannel.Init init)
     {
-        this.dataChannel = this.pc.createDataChannel(label, init);
-        return dataChannel;
+        ObservedDataChannel dataChannel = new ObservedDataChannel(label, init);
+        observedDataChannels.put(label, dataChannel);
+        return dataChannel.getChannel();
     }
 
-    public DataChannel getDataChannel(){
-        return this.dataChannel;
+    public HashMap<String, DataChannel> getDataChannels(){
+        HashMap<String, DataChannel> channels = new HashMap<>();
+        for (HashMap.Entry<String, ObservedDataChannel> entry : observedDataChannels.entrySet()) {
+            String key = entry.getKey();
+            ObservedDataChannel value = entry.getValue();
+            channels.put(key, value.getChannel());
+        }
+        return channels;
+    }
+
+    public DataChannel getDataChannel(String dataChannelId){
+        ObservedDataChannel channel = this.observedDataChannels.get(dataChannelId);
+        if (channel == null) {
+            return null;
+        }
+        else {
+            return channel.getChannel();
+        }
     }
 
     public void setPc(PeerConnection pc) {
@@ -73,6 +152,13 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver, 
 
     public void addObserver(NBMWebRTCPeer.Observer observer){
         observers.add(observer);
+    }
+
+    @Override
+    public void onDataChannel(DataChannel dataChannel) {
+        for (NBMWebRTCPeer.Observer observer : observers) {
+            observer.onDataChannel(dataChannel, NBMPeerConnection.this);
+        }
     }
 
     @Override
@@ -151,34 +237,6 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver, 
                 }
             }
         });
-    }
-
-    @Override
-    public void onDataChannel(DataChannel dataChannel) {
-        for (NBMWebRTCPeer.Observer observer : observers) {
-            observer.onDataChannel(dataChannel, NBMPeerConnection.this);
-        }
-    }
-
-    @Override
-    public void onBufferedAmountChange(long l) {
-        for (NBMWebRTCPeer.Observer observer : observers) {
-            observer.onBufferedAmountChange(l, NBMPeerConnection.this);
-        }
-    }
-
-    @Override
-    public void onStateChange(){
-        for (NBMWebRTCPeer.Observer observer : observers) {
-            observer.onStateChange(NBMPeerConnection.this);
-        }
-    }
-
-    @Override
-    public void onMessage(DataChannel.Buffer buffer) {
-        for (NBMWebRTCPeer.Observer observer : observers) {
-            observer.onMessage(buffer, NBMPeerConnection.this);
-        }
     }
 
     @Override

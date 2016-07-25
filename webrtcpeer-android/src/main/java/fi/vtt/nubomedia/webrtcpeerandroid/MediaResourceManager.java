@@ -1,8 +1,6 @@
 package fi.vtt.nubomedia.webrtcpeerandroid;
 
-import android.opengl.EGLContext;
 import android.util.Log;
-
 import org.webrtc.CameraEnumerationAndroid;
 import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;
@@ -17,10 +15,8 @@ import org.webrtc.VideoCapturerAndroid;
 import org.webrtc.VideoRenderer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
-
 import java.util.EnumSet;
 import java.util.HashMap;
-
 import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
 
 /**
@@ -59,10 +55,6 @@ import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
 
 
 final class MediaResourceManager implements NBMWebRTCPeer.Observer {
-
-    public static final String VIDEO_TRACK_ID = "ARDAMSv0";
-    public static final String AUDIO_TRACK_ID = "ARDAMSa0";
-
     private static final String TAG = "MediaResourceManager";
     private static final String DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT = "DtlsSrtpKeyAgreement";
     private static final int HD_VIDEO_WIDTH = 1280;
@@ -80,6 +72,9 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
     private static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
     private static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
+    private static final String RTPDATACHANNELS_CONSTRAINT = "RtpDataChannels";
+    public static final String VIDEO_TRACK_ID = "ARDAMSv0";
+    public static final String AUDIO_TRACK_ID = "ARDAMSa0";
 
     private LooperExecutor executor;
     private PeerConnectionFactory factory;
@@ -107,7 +102,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         this.executor = executor;
         this.factory = factory;
         renderVideo = true;
-        remoteVideoTracks = new HashMap<MediaStream, VideoTrack>();
+        remoteVideoTracks = new HashMap<>();
         videoCallEnabled = peerConnectionParameters.videoCallEnabled;
     }
 
@@ -116,10 +111,13 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         pcConstraints = new MediaConstraints();
         // Enable DTLS for normal calls and disable for loopback calls.
         if (peerConnectionParameters.loopback) {
-            pcConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "false"));
+            pcConstraints.mandatory.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "false"));
         } else {
-            pcConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
+            pcConstraints.mandatory.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
         }
+
+        pcConstraints.optional.add(new MediaConstraints.KeyValuePair(RTPDATACHANNELS_CONSTRAINT, "true"));
+
         // Check if there is a camera on device and disable video call if not.
         numberOfCameras = CameraEnumerationAndroid.getDeviceCount();
         if (numberOfCameras == 0) {
@@ -199,9 +197,6 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         });
     }
 
-    /**
-     *
-     */
     void startVideoSource() {
         executor.execute(new Runnable() {
             @Override
@@ -215,12 +210,6 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         });
     }
 
-
-    /**
-     *
-     * @param capturer
-     * @return
-     */
     private VideoTrack createCapturerVideoTrack(VideoCapturerAndroid capturer) {
         videoSource = factory.createVideoSource(capturer, videoConstraints);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
@@ -229,9 +218,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         return localVideoTrack;
     }
 
-
     private class AttachRendererTask implements Runnable {
-
         private VideoRenderer.Callbacks remoteRender;
         private MediaStream remoteStream;
 
@@ -249,9 +236,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
                 remoteVideoTracks.put(remoteStream, remoteVideoTrack);
                 Log.d(TAG, "Attached.");
             }
-
         }
-
     }
 
     void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
@@ -259,12 +244,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         executor.execute(new AttachRendererTask(remoteRender, remoteStream));
     }
 
-
-    /**
-     *
-     * @param renderEGLContext
-     */
-    void createLocalMediaStream(EGLContext renderEGLContext,final VideoRenderer.Callbacks localRender) {
+    void createLocalMediaStream(Object renderEGLContext,final VideoRenderer.Callbacks localRender) {
         if (factory == null) { // || isError) {
             Log.e(TAG, "Peerconnection factory is not created");
             return;
@@ -279,7 +259,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         Log.w(TAG, "PCConstraints: " + pcConstraints.toString());
         if (videoCallEnabled) {
             Log.d(TAG, "EGLContext: " + renderEGLContext);
-            factory.setVideoHwAccelerationOptions(renderEGLContext);
+            factory.setVideoHwAccelerationOptions(renderEGLContext, renderEGLContext);
         }
         // Set default WebRTC tracing and INFO libjingle logging.
         // NOTE: this _must_ happen while |factory| is alive!
@@ -305,17 +285,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         }
         localMediaStream.addTrack(factory.createAudioTrack(AUDIO_TRACK_ID, factory.createAudioSource(audioConstraints)));
 
-//        peerConnection.addStream(mediaStream);
         Log.d(TAG, "Local media stream created.");
-    }
-
-    private void switchCameraInternal() {
-        if (!videoCallEnabled || numberOfCameras < 2 || videoCapturer == null) {
-            Log.e(TAG, "Failed to switch camera. Video: " + videoCallEnabled + ". . Number of cameras: " + numberOfCameras);
-            return;  // No video is sent or only one camera is available or error happened.
-        }
-        Log.d(TAG, "Switch camera");
-        videoCapturer.switchCamera(null);
     }
 
     void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
@@ -323,12 +293,16 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    switchCameraInternal();
+                    if (!videoCallEnabled || numberOfCameras < 2 || videoCapturer == null) {
+                        Log.e(TAG, "Failed to switch camera. Video: " + videoCallEnabled + ". . Number of cameras: " + numberOfCameras);
+                        return;  // No video is sent or only one camera is available or error happened.
+                    }
+                    Log.d(TAG, "Switch camera");
+                    videoCapturer.switchCamera(null);
                 }
             });
             currentCameraPosition = position; // Let's see if we need to handle this after the switch event.
         }
-
     }
 
     void setVideoEnabled(final boolean enable) {
@@ -366,9 +340,8 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         } else if (position == NBMMediaConfiguration.NBMCameraPosition.FRONT &&
                 frontName != null){
             retMe = true;
-        } else {
-            retMe = false;
         }
+
         return retMe;
     }
 
@@ -415,17 +388,17 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     }
 
     @Override
-    public void onBufferedAmountChange(long l, NBMPeerConnection connection) {
+    public void onBufferedAmountChange(long l, NBMPeerConnection connection, DataChannel channel) {
 
     }
 
     @Override
-    public void onStateChange(NBMPeerConnection connection) {
+    public void onStateChange(NBMPeerConnection connection, DataChannel channel) {
 
     }
 
     @Override
-    public void onMessage(DataChannel.Buffer buffer, NBMPeerConnection connection) {
+    public void onMessage(DataChannel.Buffer buffer, NBMPeerConnection connection, DataChannel channel) {
 
     }
 }
