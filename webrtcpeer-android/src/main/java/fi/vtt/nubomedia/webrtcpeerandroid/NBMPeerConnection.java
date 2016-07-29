@@ -41,6 +41,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
     private LinkedList<IceCandidate> queuedRemoteCandidates;
     private static final String VIDEO_CODEC_PARAM_START_BITRATE = "x-google-start-bitrate";
     private static final String AUDIO_CODEC_PARAM_BITRATE = "maxaveragebitrate";
+    MediaConstraints sdpMediaConstraints = null;
 
     /* This private class exists to receive per-channel events and forward them to upper layers
        with the channel instance
@@ -53,18 +54,6 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
             if (channel != null) {
                 channel.registerObserver(this);
                 Log.i(TAG, "Created data channel with Id: " + label);
-                byte[] rawMessage = "Hello Peer!".getBytes(Charset.forName("UTF-8"));
-                ByteBuffer directData = ByteBuffer.allocateDirect(rawMessage.length);
-                directData.put(rawMessage);
-                directData.flip();
-                DataChannel.Buffer data = new DataChannel.Buffer(directData, false);
-                boolean success = channel.send(data);
-                if (success) {
-                    Log.i(TAG, "[DataChannel] Successfully sent test message");
-                }
-                else {
-                    Log.i(TAG, "[DataChannel] Unable to send test message. State: " + channel.state());
-                }
             }
             else {
                 Log.e(TAG, "Failed to create data channel with Id: " + label);
@@ -77,7 +66,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
         @Override
         public void onBufferedAmountChange(long l) {
-            Log.i(TAG, "[Datachannel] NBMPeerConnection onBufferedAmountChange");
+            Log.i(TAG, "[ObservedDataChannel] NBMPeerConnection onBufferedAmountChange");
             for (NBMWebRTCPeer.Observer observer : observers) {
                 observer.onBufferedAmountChange(l, NBMPeerConnection.this, channel);
             }
@@ -85,7 +74,6 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
         @Override
         public void onStateChange(){
-            Log.i(TAG, "[Datachannel] NBMPeerConnection onStateChange");
             for (NBMWebRTCPeer.Observer observer : observers) {
                 observer.onStateChange(NBMPeerConnection.this, channel);
             }
@@ -93,7 +81,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
         @Override
         public void onMessage(DataChannel.Buffer buffer) {
-            Log.i(TAG, "[Datachannel] NBMPeerConnection onMessage");
+            Log.i(TAG, "[ObservedDataChannel] NBMPeerConnection onMessage");
             for (NBMWebRTCPeer.Observer observer : observers) {
                 observer.onMessage(buffer, NBMPeerConnection.this, channel);
             }
@@ -156,6 +144,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
     @Override
     public void onDataChannel(DataChannel dataChannel) {
+        Log.i(TAG, "[datachannel] Peer opened data channel");
         for (NBMWebRTCPeer.Observer observer : observers) {
             observer.onDataChannel(dataChannel, NBMPeerConnection.this);
         }
@@ -241,7 +230,11 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
     @Override
     public void onRenegotiationNeeded() {
-        Log.d(TAG, "OnRenegotiationNeeded called.");
+        Log.d(TAG, "[datachannel] OnRenegotiationNeeded called.");
+        /*if (sdpMediaConstraints != null) {
+            Log.d(TAG, sdpMediaConstraints.toString());
+            pc.createOffer(NBMPeerConnection.this, sdpMediaConstraints);
+        }*/
     }
 
     @Override
@@ -342,10 +335,11 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
 
     public void createOffer(MediaConstraints sdpMediaConstraints) {
+        this.sdpMediaConstraints = sdpMediaConstraints;
         if (pc != null){// && !isError) {
             Log.d(TAG, "PC Create OFFER");
             isInitiator = true;
-            pc.createOffer(this,sdpMediaConstraints);
+            pc.createOffer(this,this.sdpMediaConstraints);
         }
     }
 

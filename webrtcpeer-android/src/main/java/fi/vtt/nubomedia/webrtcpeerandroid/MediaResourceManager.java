@@ -15,6 +15,9 @@ import org.webrtc.VideoCapturerAndroid;
 import org.webrtc.VideoRenderer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.EnumSet;
 import java.util.HashMap;
 import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
@@ -111,12 +114,13 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         pcConstraints = new MediaConstraints();
         // Enable DTLS for normal calls and disable for loopback calls.
         if (peerConnectionParameters.loopback) {
-            pcConstraints.mandatory.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "false"));
+            pcConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "false"));
         } else {
-            pcConstraints.mandatory.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
+            pcConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
         }
 
-        pcConstraints.optional.add(new MediaConstraints.KeyValuePair(RTPDATACHANNELS_CONSTRAINT, "true"));
+        //pcConstraints.optional.add(new MediaConstraints.KeyValuePair(RTPDATACHANNELS_CONSTRAINT, "true"));
+        pcConstraints.optional.add(new MediaConstraints.KeyValuePair("internalSctpDataChannels", "true"));
 
         // Check if there is a camera on device and disable video call if not.
         numberOfCameras = CameraEnumerationAndroid.getDeviceCount();
@@ -170,6 +174,9 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         } else {
             sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
         }
+        //sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair(RTPDATACHANNELS_CONSTRAINT, "true"));
+        sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
+        sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair("internalSctpDataChannels", "true"));
     }
 
     MediaConstraints getPcConstraints(){

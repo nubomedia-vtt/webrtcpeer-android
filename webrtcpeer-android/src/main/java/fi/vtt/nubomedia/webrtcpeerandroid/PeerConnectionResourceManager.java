@@ -29,7 +29,6 @@ final class PeerConnectionResourceManager {
     private PeerConnectionFactory factory;
     private HashMap<String,NBMPeerConnection> connections;
     private MediaConstraints pcConstraints;
-
     private NBMPeerConnectionParameters peerConnectionParameters;
     private SignalingParameters signalingParameters;
 
@@ -53,7 +52,6 @@ final class PeerConnectionResourceManager {
                 peerConnectionParameters.audioCodec.equals(NBMMediaConfiguration.NBMAudioCodec.ISAC.toString())) {
             preferIsac = true;
         }
-
         connections = new HashMap<String,NBMPeerConnection>();
     }
 

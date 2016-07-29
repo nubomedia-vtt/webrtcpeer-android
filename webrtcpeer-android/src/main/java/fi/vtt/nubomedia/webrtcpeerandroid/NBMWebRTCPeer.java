@@ -266,16 +266,20 @@ public class NBMWebRTCPeer{
 	 * <p>
 	 */
     public void initialize() {
-        initialized = true;
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                signalingParameters = new NBMWebRTCPeer.SignalingParameters(iceServers,true,"",null,null);
+                signalingParameters = new NBMWebRTCPeer.SignalingParameters(iceServers, true, "", null, null);
                 createPeerConnectionFactoryInternal(context);
                 peerConnectionResourceManager = new PeerConnectionResourceManager(peerConnectionParameters, executor, peerConnectionFactory);
                 mediaResourceManager = new MediaResourceManager(peerConnectionParameters, executor, peerConnectionFactory);
+                initialized = true;
             }
         });
+    }
+
+    public boolean isInitialized() {
+        return initialized;
     }
 
     private class GenerateOfferTask implements Runnable {
@@ -299,15 +303,18 @@ public class NBMWebRTCPeer{
             if (connection == null) {
                 if (signalingParameters != null) {
 
-
-                    connection = peerConnectionResourceManager.createPeerConnection(signalingParameters,
-                            mediaResourceManager.getPcConstraints(), connectionId);
-
-                    connection.addObserver(NBMWebRTCPeer.this.observer);
+                    connection = peerConnectionResourceManager.createPeerConnection(
+                                                                signalingParameters,
+                                                                mediaResourceManager.getPcConstraints(),
+                                                                connectionId);
+                    connection.addObserver(observer);
                     connection.addObserver(mediaResourceManager);
                     if (includeLocalMedia) {
                         connection.getPc().addStream(mediaResourceManager.getLocalMediaStream());
                     }
+
+                    DataChannel.Init init =  new DataChannel.Init();
+                    createDataChannel(this.connectionId, "default", init);
 
                     // Create offer. Offer SDP will be sent to answering client in
                     // PeerConnectionEvents.onLocalDescription event.
