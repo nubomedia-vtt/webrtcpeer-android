@@ -68,7 +68,6 @@ public class NBMWebRTCPeer{
     private MediaResourceManager mediaResourceManager;
     private LinkedList<PeerConnection.IceServer> iceServers;
     private boolean initialized = false;
-    // PeerConnectionFactory internals. Move to separate static class?
 
     /**
      * An interface which declares WebRTC callbacks
@@ -116,7 +115,7 @@ public class NBMWebRTCPeer{
 
         /**
          * WebRTC event which is triggered when a remote media stream is terminated
-         * @param stream
+         * @param stream The removed remote media stream
          * @param connection The connection for which this event takes place
          */
         void onRemoteStreamRemoved(MediaStream stream, NBMPeerConnection connection);
@@ -265,6 +264,7 @@ public class NBMWebRTCPeer{
 	 * NBMWebRTCPeer must be initialized before use. This function can be called immediately after constructor
 	 * <p>
 	 */
+    @SuppressWarnings("unused")
     public void initialize() {
         executor.execute(new Runnable() {
             @Override
@@ -278,6 +278,7 @@ public class NBMWebRTCPeer{
         });
     }
 
+    @SuppressWarnings("unused")
     public boolean isInitialized() {
         return initialized;
     }
@@ -329,14 +330,17 @@ public class NBMWebRTCPeer{
 	*
 	* @param  connectionId		A unique identifier for the connection
 	*/
+    @SuppressWarnings("unused")
     public void generateOffer(String connectionId, boolean includeLocalMedia){
         executor.execute(new GenerateOfferTask(connectionId, includeLocalMedia));
     }
 
+    @SuppressWarnings("unused")
     public LinkedList<PeerConnection.IceServer> getIceServers() {
         return iceServers;
     }
 
+    @SuppressWarnings("unused")
     public void setIceServers(LinkedList<PeerConnection.IceServer> iceServers) {
         if (!initialized) {
             this.iceServers = iceServers;
@@ -389,6 +393,7 @@ public class NBMWebRTCPeer{
      * @param remoteOffer The received offer
      * @param connectionId A unique identifier for the connection
      */
+    @SuppressWarnings("unused")
     public void processOffer(SessionDescription remoteOffer, String connectionId) {
         executor.execute(new ProcessOfferTask(remoteOffer, connectionId));
     }
@@ -398,6 +403,7 @@ public class NBMWebRTCPeer{
      * @param remoteAnswer The received answer
      * @param connectionId A unique identifier for the connection
      */
+    @SuppressWarnings("unused")
     public void processAnswer(SessionDescription remoteAnswer, String connectionId) {
         NBMPeerConnection connection = peerConnectionResourceManager.getConnection(connectionId);
 
@@ -413,6 +419,7 @@ public class NBMWebRTCPeer{
      * @param remoteIceCandidate The received ICE candidate
      * @param connectionId A unique identifier for the connection
      */
+    @SuppressWarnings("unused")
     public void addRemoteIceCandidate(IceCandidate remoteIceCandidate, String connectionId) {
         NBMPeerConnection connection = peerConnectionResourceManager.getConnection(connectionId);
 
@@ -427,10 +434,12 @@ public class NBMWebRTCPeer{
      * Closes specific connection
      * @param connectionId A unique identifier for the connection
      */
+    @SuppressWarnings("unused")
     public void closeConnection(String connectionId){
         peerConnectionResourceManager.closeConnection(connectionId);
     }
 
+    @SuppressWarnings("unused")
     public DataChannel getDataChannel(String connectionId, String dataChannelId) {
         return peerConnectionResourceManager.getConnection(connectionId).getDataChannel(dataChannelId);
     }
@@ -438,8 +447,7 @@ public class NBMWebRTCPeer{
     public DataChannel createDataChannel(String connectionId, String dataChannelId, DataChannel.Init init) {
         NBMPeerConnection connection = peerConnectionResourceManager.getConnection(connectionId);
         if (connection!=null) {
-            DataChannel channel = connection.createDataChannel(dataChannelId, init);
-            return channel;
+            return connection.createDataChannel(dataChannelId, init);
         }
         else {
             Log.e(TAG, "Cannot find connection by id: " + connectionId);
@@ -450,6 +458,7 @@ public class NBMWebRTCPeer{
     /**
      * Closes all connections
      */
+    @SuppressWarnings("unused")
     public void close(){
         executor.execute(new Runnable() {
             @Override
@@ -481,6 +490,7 @@ public class NBMWebRTCPeer{
      * Starts local media playback
      * @return true if local media video source was successfully initiated, otherwise false
      */
+    @SuppressWarnings("unused")
     public boolean startLocalMedia() {
         if (mediaResourceManager != null && mediaResourceManager.getLocalMediaStream() == null) {
             executor.execute(new Runnable() {
@@ -498,6 +508,7 @@ public class NBMWebRTCPeer{
     /**
      * Stops local media playback
      */
+    @SuppressWarnings("unused")
     public void stopLocalMedia() {
         mediaResourceManager.stopVideoSource();
     }
@@ -507,6 +518,7 @@ public class NBMWebRTCPeer{
      * @param remoteRender A render callback for rendering the remote media
      * @param remoteStream The remote media stream
      */
+    @SuppressWarnings("unused")
     public void attachRendererToRemoteStream(VideoRenderer.Callbacks remoteRender, MediaStream remoteStream){
         mediaResourceManager.attachRendererToRemoteStream(remoteRender, remoteStream);
     }
@@ -515,6 +527,7 @@ public class NBMWebRTCPeer{
      * Select active camera for local media
      * @param position The camera identifier (usually either back or front camera e.g. in camera)
      */
+    @SuppressWarnings("unused")
     public void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
         mediaResourceManager.selectCameraPosition(position);
     }
@@ -524,6 +537,7 @@ public class NBMWebRTCPeer{
      * @param position The camera position to query
      * @return true if position is available on the device, otherwise false
      */
+    @SuppressWarnings("unused")
     public boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
         return mediaResourceManager.hasCameraPosition(position);
     }
@@ -532,6 +546,7 @@ public class NBMWebRTCPeer{
      * Check if video is enabled
      * @return true if video is enabled, otherwise false
      */
+    @SuppressWarnings("unused")
     public boolean videoEnabled(){
         return mediaResourceManager.getVideoEnabled();
     }
@@ -540,6 +555,7 @@ public class NBMWebRTCPeer{
      * Enable or disable video
      * @param enable If true then video will be enabled, if false then video will be disabled
      */
+    @SuppressWarnings("unused")
     public void enableVideo(boolean enable){
         mediaResourceManager.setVideoEnabled(enable);
     }
@@ -548,6 +564,7 @@ public class NBMWebRTCPeer{
      * Check if audio is enabled
      * @return true if audio is enabled, otherwise false
      */
+    @SuppressWarnings("unused")
     public boolean audioEnabled(){
         return false;
     }
@@ -556,6 +573,7 @@ public class NBMWebRTCPeer{
      * Enable or disable audio
      * @param enable If true then audio will be enabled, if false then audio will be disabled
      */
+    @SuppressWarnings("unused")
     public void enableAudio(boolean enable){
 
     }
@@ -564,6 +582,7 @@ public class NBMWebRTCPeer{
      * Check if video is authorized
      * @return true if video is authorized, otherwise false
      */
+    @SuppressWarnings("unused")
     public boolean videoAuthorized(){
         return false;
     }
@@ -572,6 +591,7 @@ public class NBMWebRTCPeer{
      * Check if audio is authorized
      * @return true if audio is authorized, otherwise false
      */
+    @SuppressWarnings("unused")
     public boolean audioAuthorized(){
         return false;
     }

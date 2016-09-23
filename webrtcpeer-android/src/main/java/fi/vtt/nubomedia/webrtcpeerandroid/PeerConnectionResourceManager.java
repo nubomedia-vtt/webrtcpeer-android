@@ -18,7 +18,6 @@ import fi.vtt.nubomedia.webrtcpeerandroid.NBMWebRTCPeer.SignalingParameters;
  * The implementation is based on PeerConnectionClient.java of package org.appspot.apprtc
  * (please see the copyright notice below)
  */
-
 final class PeerConnectionResourceManager {
     private static final String TAG = "PCResourceManager";
 
@@ -28,9 +27,7 @@ final class PeerConnectionResourceManager {
     private LooperExecutor executor;
     private PeerConnectionFactory factory;
     private HashMap<String,NBMPeerConnection> connections;
-    private MediaConstraints pcConstraints;
     private NBMPeerConnectionParameters peerConnectionParameters;
-    private SignalingParameters signalingParameters;
 
     PeerConnectionResourceManager(NBMPeerConnectionParameters peerConnectionParameters,
                                          LooperExecutor executor, PeerConnectionFactory factory) {
@@ -41,30 +38,15 @@ final class PeerConnectionResourceManager {
         videoCallEnabled = peerConnectionParameters.videoCallEnabled;
 
         // Check if H.264 is used by default.
-        preferH264 = false;
-        if ( videoCallEnabled && peerConnectionParameters.videoCodec != null &&
-                peerConnectionParameters.videoCodec.equals(NBMMediaConfiguration.NBMVideoCodec.H264.toString())) {
-            preferH264 = true;
-        }
+        preferH264 = videoCallEnabled && peerConnectionParameters.videoCodec != null && peerConnectionParameters.videoCodec.equals(NBMMediaConfiguration.NBMVideoCodec.H264.toString());
         // Check if ISAC is used by default.
-        preferIsac = false;
-        if (peerConnectionParameters.audioCodec != null &&
-                peerConnectionParameters.audioCodec.equals(NBMMediaConfiguration.NBMAudioCodec.ISAC.toString())) {
-            preferIsac = true;
-        }
-        connections = new HashMap<String,NBMPeerConnection>();
+        preferIsac = peerConnectionParameters.audioCodec != null && peerConnectionParameters.audioCodec.equals(NBMMediaConfiguration.NBMAudioCodec.ISAC.toString());
+        connections = new HashMap<>();
     }
 
     NBMPeerConnection createPeerConnection( SignalingParameters signalingParameters,
                                             MediaConstraints pcConstraints,
                                             String connectionId) {
-
-        if (peerConnectionParameters == null) {
-            Log.e(TAG, "Creating peer connection without initializing factory.");
-            return null;
-        }
-        this.signalingParameters = signalingParameters;
-        this.pcConstraints = pcConstraints;
 
         Log.d(TAG, "Create peer connection.");
         Log.d(TAG, "PCConstraints: " + pcConstraints.toString());

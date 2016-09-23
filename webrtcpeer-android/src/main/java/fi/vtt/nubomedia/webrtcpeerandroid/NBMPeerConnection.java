@@ -9,9 +9,6 @@ import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Vector;
@@ -92,14 +89,14 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
                              LooperExecutor executor, NBMWebRTCPeer.NBMPeerConnectionParameters params) {
 
         this.connectionId = connectionId;
-        observers = new Vector<NBMWebRTCPeer.Observer>();
+        observers = new Vector<>();
         this.preferIsac = preferIsac;
         this.videoCallEnabled = videoCallEnabled;
         this.preferH264 = preferH264;
         this.executor = executor;
         isInitiator = false;
         peerConnectionParameters = params;
-        queuedRemoteCandidates = new LinkedList<IceCandidate>();
+        queuedRemoteCandidates = new LinkedList<>();
         observedDataChannels = new HashMap<>();
     }
 
@@ -110,6 +107,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
         return dataChannel.getChannel();
     }
 
+    @SuppressWarnings("unused")
     public HashMap<String, DataChannel> getDataChannels(){
         HashMap<String, DataChannel> channels = new HashMap<>();
         for (HashMap.Entry<String, ObservedDataChannel> entry : observedDataChannels.entrySet()) {
@@ -239,10 +237,7 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
     @Override
     public void onCreateSuccess(SessionDescription sessionDescription) {
-        if (localSdp != null) {
-            //reportError("Multiple SDP create.");
-            return;
-        }
+        assert(localSdp != null);
         String sdpDescription = sessionDescription.description;
         if (preferIsac) {
             sdpDescription = preferCodec(sdpDescription, NBMMediaConfiguration.NBMAudioCodec.ISAC.toString(), true);
@@ -261,7 +256,6 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
                 }
             }
         });
-
     }
 
     @Override
@@ -306,7 +300,6 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
                 }
             }
         });
-
     }
 
     @Override
@@ -332,7 +325,6 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
             queuedRemoteCandidates = null;
         }
     }
-
 
     public void createOffer(MediaConstraints sdpMediaConstraints) {
         this.sdpMediaConstraints = sdpMediaConstraints;
@@ -405,36 +397,12 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
     }
 
     public void close(){
-        /*executor.execute(new Runnable() {
-            @Override
-            public void run() {*/
-                closeInternal();
-        /*    }
-        });*/
-    }
-
-    private void closeInternal() {
         Log.d(TAG, "Closing peer connection.");
-//        statsTimer.cancel();
-
         if (pc != null) {
             pc.dispose();
             pc = null;
         }
-//        Log.d(TAG, "Closing video source.");
-//        if (videoSource != null) {
-//            videoSource.dispose();
-//            videoSource = null;
-//        }
-//        Log.d(TAG, "Closing peer connection factory.");
-//        if (factory != null) {
-//            factory.dispose();
-//            factory = null;
-//        }
-//        options = null;
         Log.d(TAG, "Closing peer connection done.");
-//        observer.
-//        events.onPeerConnectionClosed();
     }
 
     /**
@@ -567,5 +535,4 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
         }
         return newSdpDescription.toString();
     }
-
 }

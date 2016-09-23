@@ -15,9 +15,6 @@ import org.webrtc.VideoCapturerAndroid;
 import org.webrtc.VideoRenderer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.EnumSet;
 import java.util.HashMap;
 import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
@@ -75,7 +72,6 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
     private static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
     private static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
-    private static final String RTPDATACHANNELS_CONSTRAINT = "RtpDataChannels";
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
     public static final String AUDIO_TRACK_ID = "ARDAMSa0";
 
@@ -284,7 +280,6 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
             Log.d(TAG, "Opening camera: " + cameraDeviceName);
             videoCapturer = VideoCapturerAndroid.create(cameraDeviceName, null);
             if (videoCapturer == null) {
-                // ToDo: reporting interface
                 Log.d(TAG, "Error while opening camera");
                 return;
             }
