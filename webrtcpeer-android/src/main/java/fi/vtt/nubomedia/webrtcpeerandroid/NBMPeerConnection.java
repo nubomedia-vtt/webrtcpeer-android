@@ -24,10 +24,11 @@ import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
 public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
 
     private static final String TAG = "NBMPeerConnection";
+    private static final String VIDEO_CODEC_PARAM_START_BITRATE = "x-google-start-bitrate";
+    private static final String AUDIO_CODEC_PARAM_BITRATE = "maxaveragebitrate";
+
     private PeerConnection pc;
-    String connectionId;
-    Vector<NBMWebRTCPeer.Observer> observers;
-    NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
+    private String connectionId;
     private LooperExecutor executor;
     private SessionDescription localSdp; // either offer or answer SDP
     private boolean preferIsac;
@@ -36,9 +37,9 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
     private boolean isInitiator;
     private HashMap<String, ObservedDataChannel> observedDataChannels;
     private LinkedList<IceCandidate> queuedRemoteCandidates;
-    private static final String VIDEO_CODEC_PARAM_START_BITRATE = "x-google-start-bitrate";
-    private static final String AUDIO_CODEC_PARAM_BITRATE = "maxaveragebitrate";
     MediaConstraints sdpMediaConstraints = null;
+    Vector<NBMWebRTCPeer.Observer> observers;
+    NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
 
     /* This private class exists to receive per-channel events and forward them to upper layers
        with the channel instance
@@ -116,6 +117,11 @@ public class NBMPeerConnection implements PeerConnection.Observer, SdpObserver {
             channels.put(key, value.getChannel());
         }
         return channels;
+    }
+
+    @SuppressWarnings("unused")
+    public String getConnectionId() {
+        return connectionId;
     }
 
     public DataChannel getDataChannel(String dataChannelId){
