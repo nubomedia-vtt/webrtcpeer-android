@@ -62,6 +62,8 @@ public class NBMWebRTCPeer{
     private NBMPeerConnectionParameters peerConnectionParameters;
     private SignalingParameters signalingParameters = null;
     private VideoRenderer.Callbacks localRender;
+    private VideoRenderer.Callbacks masterRenderer;
+    private MediaStream activeMasterStream;
     private Observer observer;
     private PeerConnectionFactory peerConnectionFactory;
     private PeerConnectionResourceManager peerConnectionResourceManager;
@@ -77,6 +79,11 @@ public class NBMWebRTCPeer{
      * </p>
      */
     public interface Observer {
+
+        /**
+         * Called when the NBMWebRTCPeer initialization has completed
+         */
+        void onInitialize();
 
         /**
          * WebRTC event which is triggered when local SDP offer has been generated
@@ -242,6 +249,8 @@ public class NBMWebRTCPeer{
         this.context = context;
         this.localRender = localRenderer;
         this.observer = observer;
+        this.masterRenderer = null;
+        this.activeMasterStream = null;
         executor = new LooperExecutor();
 
         // Looper thread is started once in private ctor and is used for all
@@ -256,6 +265,23 @@ public class NBMWebRTCPeer{
 
         iceServers = new LinkedList<>();
         addIceServer("stun:stun.l.google.com:19302");
+    }
+
+    private void updateMasterRenderer() {
+        if (masterRenderer != null && activeMasterStream != null) {
+            attachRendererToRemoteStream(masterRenderer, activeMasterStream);
+        }
+    }
+
+    public void setActiveMasterStream(MediaStream stream) {
+        this.activeMasterStream = stream;
+        updateMasterRenderer();
+    }
+
+
+    public void registerMasterRenderer(VideoRenderer.Callbacks masterRenderer) {
+        this.masterRenderer = masterRenderer;
+        updateMasterRenderer();
     }
 
 	/**
@@ -274,6 +300,7 @@ public class NBMWebRTCPeer{
                 peerConnectionResourceManager = new PeerConnectionResourceManager(peerConnectionParameters, executor, peerConnectionFactory);
                 mediaResourceManager = new MediaResourceManager(peerConnectionParameters, executor, peerConnectionFactory);
                 initialized = true;
+                observer.onInitialize();
             }
         });
     }

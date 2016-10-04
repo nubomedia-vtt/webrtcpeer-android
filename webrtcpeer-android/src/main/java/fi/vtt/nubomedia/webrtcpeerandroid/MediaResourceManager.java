@@ -89,6 +89,9 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private VideoSource videoSource;
     private VideoTrack localVideoTrack;
     private HashMap<MediaStream,VideoTrack> remoteVideoTracks;
+    private HashMap<VideoRenderer.Callbacks,VideoRenderer> remoteVideoRenderers;
+    private HashMap<VideoRenderer,MediaStream> remoteVideoMediaStreams;
+
     private VideoRenderer.Callbacks localRender;
     private NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
     private VideoCapturerAndroid videoCapturer;
@@ -102,6 +105,8 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         this.factory = factory;
         renderVideo = true;
         remoteVideoTracks = new HashMap<>();
+        remoteVideoRenderers = new HashMap<>();
+        remoteVideoMediaStreams = new HashMap<>();
         videoCallEnabled = peerConnectionParameters.videoCallEnabled;
     }
 
@@ -232,10 +237,28 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         public void run() {
             Log.d(TAG, "Attaching VideoRenderer to remote stream (" + remoteStream + ")");
 
+            // Check if the remote stream has a video track
             if (remoteStream.videoTracks.size() == 1) {
+                // Get the video track
                 VideoTrack remoteVideoTrack = remoteStream.videoTracks.get(0);
+                // Set video track enabled if we have enabled video rendering
                 remoteVideoTrack.setEnabled(renderVideo);
-                remoteVideoTrack.addRenderer(new VideoRenderer(remoteRender));
+
+                VideoRenderer videoRenderer = remoteVideoRenderers.get(remoteRender);
+                if (videoRenderer != null) {
+                    MediaStream mediaStream = remoteVideoMediaStreams.get(videoRenderer);
+                    if (mediaStream != null) {
+                        VideoTrack videoTrack = remoteVideoTracks.get(mediaStream);
+                        if (videoTrack != null) {
+                            videoTrack.removeRenderer(videoRenderer);
+                        }
+                    }
+                }
+
+                VideoRenderer newVideoRenderer = new VideoRenderer(remoteRender);
+                remoteVideoTrack.addRenderer(newVideoRenderer);
+                remoteVideoRenderers.put(remoteRender, newVideoRenderer);
+                remoteVideoMediaStreams.put(newVideoRenderer, remoteStream);
                 remoteVideoTracks.put(remoteStream, remoteVideoTrack);
                 Log.d(TAG, "Attached.");
             }
@@ -354,6 +377,9 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         //videoCapturer.dispose();
         //videoCapturer = null;
     }
+
+    @Override
+    public void onInitialize() {}
 
     @Override
     public void onLocalSdpOfferGenerated(SessionDescription localSdpOffer, NBMPeerConnection connection) {
