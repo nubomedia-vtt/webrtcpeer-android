@@ -1,3 +1,5 @@
+[![License badge](https://img.shields.io/badge/license-Apache2-orange.svg)](https://www.apache.org/licenses/LICENSE-2.0.txt)
+
 [![][NUBOMEDIA Logo]][NUBOMEDIA]
 
 Copyright © 2016 [VTT]. Licensed under [Apache 2.0 License].
