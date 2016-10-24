@@ -1,9 +1,23 @@
+[![][NUBOMEDIA Logo]][NUBOMEDIA]
+
+Copyright © 2016 [VTT]. Licensed under [Apache 2.0 License].
+
 webrtcpeer-android
 ==================
-
 This repository contains an Android library for creating WebRTC connections.
 
-This project is part of [NUBOMEDIA].
+What is NUBOMEDIA
+-----------------
+This project is part of [NUBOMEDIA], which is an open source cloud Platform as a
+Service (PaaS) which makes possible to integrate Real Time Communications (RTC)
+and multimedia through advanced media processing capabilities. The aim of
+NUBOMEDIA is to democratize multimedia technologies helping all developers to
+include advanced multimedia capabilities into their Web and smartphone
+applications in a simple, direct and fast manner. To accomplish that objective,
+NUBOMEDIA provides a set of APIs that try to abstract all the low level details
+of service deployment, management, and exploitation allowing applications to
+transparently scale and adapt to the required load while preserving QoS
+guarantees.
 
 Repository structure
 --------------------
@@ -29,7 +43,6 @@ The source code is available in [Github]
 
 Licensing and distribution
 --------------------------
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -44,7 +57,6 @@ limitations under the License.
 
 Contribution policy
 -------------------
-
 You can contribute to the Nubomedia community through bug-reports, bug-fixes, new
 code or new documentation. For contributing to the Nubomedia community, drop a
 post to the [Nubomedia Public Mailing List] providing full information about your
@@ -69,9 +81,12 @@ Support
 -------
 Support is provided through the [Nubomedia Public Mailing List]
 
+[Apache 2.0 License]: https://www.apache.org/licenses/LICENSE-2.0.txt
 [NUBOMEDIA]: http://www.nubomedia.eu
+[VTT]: http://www.vtt.fi
 [Github]: https://github.com/nubomedia-vtt/webrtcpeer-android
 [Nubomedia Public Mailing List]: https://groups.google.com/forum/#!forum/nubomedia-dev
 [project documentation page]: http://webrtcpeer-android.readthedocs.org/en/latest/
 [maven artifact page]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22fi.vtt.nubomedia%22%20AND%20a%3A%22webrtcpeer-android%22
 [WebRTC software project]: https://chromium.googlesource.com/external/webrtc/
+[NUBOMEDIA Logo]: http://www.nubomedia.eu/sites/default/files/nubomedia_logo-small.png
