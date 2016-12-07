@@ -481,6 +481,10 @@ public class NBMWebRTCPeer{
      */
     @SuppressWarnings("unused")
     public void closeConnection(String connectionId){
+        if (peerConnectionResourceManager.getConnection(connectionId)==null) {
+            return;
+        }
+        peerConnectionResourceManager.getConnection(connectionId).getPc().removeStream(mediaResourceManager.getLocalMediaStream());
         peerConnectionResourceManager.closeConnection(connectionId);
     }
 
