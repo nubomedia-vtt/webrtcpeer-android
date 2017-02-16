@@ -35,6 +35,7 @@ import org.webrtc.VideoTrack;
 import java.util.EnumSet;
 import java.util.HashMap;
 import fi.vtt.nubomedia.utilitiesandroid.LooperExecutor;
+import fi.vtt.nubomedia.webrtcpeerandroid.NBMMediaConfiguration.NBMCameraPosition;
 
 /**
  * The class implements the management of media resources.
@@ -79,6 +80,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private static final int MAX_VIDEO_WIDTH = 1280;
     private static final int MAX_VIDEO_HEIGHT = 1280;
     private static final int MAX_VIDEO_FPS = 30;
+    private static final int numberOfCameras = CameraEnumerationAndroid.getDeviceCount();
     private static final String MAX_VIDEO_WIDTH_CONSTRAINT = "maxWidth";
     private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
     private static final String MAX_VIDEO_HEIGHT_CONSTRAINT = "maxHeight";
@@ -89,8 +91,8 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
     private static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
     private static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
-    public static final String VIDEO_TRACK_ID = "ARDAMSv0";
-    public static final String AUDIO_TRACK_ID = "ARDAMSa0";
+    private static final String VIDEO_TRACK_ID = "ARDAMSv0";
+    private static final String AUDIO_TRACK_ID = "ARDAMSa0";
 
     private LooperExecutor executor;
     private PeerConnectionFactory factory;
@@ -98,7 +100,6 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private MediaConstraints videoConstraints;
     private MediaConstraints audioConstraints;
     private MediaConstraints sdpMediaConstraints;
-    private int numberOfCameras;
     private boolean videoCallEnabled;
     private boolean renderVideo;
     private boolean videoSourceStopped;
@@ -112,7 +113,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private VideoRenderer.Callbacks localRender;
     private NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters;
     private VideoCapturerAndroid videoCapturer;
-    private NBMMediaConfiguration.NBMCameraPosition currentCameraPosition;
+    private NBMCameraPosition currentCameraPosition;
 
     MediaResourceManager(NBMWebRTCPeer.NBMPeerConnectionParameters peerConnectionParameters,
                                 LooperExecutor executor, PeerConnectionFactory factory){
@@ -130,6 +131,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     void createMediaConstraints() {
         // Create peer connection constraints.
         pcConstraints = new MediaConstraints();
+
         // Enable DTLS for normal calls and disable for loopback calls.
         if (peerConnectionParameters.loopback) {
             pcConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "false"));
@@ -137,11 +139,9 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
             pcConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
         }
 
-        //pcConstraints.optional.add(new MediaConstraints.KeyValuePair(RTPDATACHANNELS_CONSTRAINT, "true"));
         pcConstraints.optional.add(new MediaConstraints.KeyValuePair("internalSctpDataChannels", "true"));
 
         // Check if there is a camera on device and disable video call if not.
-        numberOfCameras = CameraEnumerationAndroid.getDeviceCount();
         if (numberOfCameras == 0) {
             Log.w(TAG, "No camera on device. Switch to audio only call.");
             videoCallEnabled = false;
@@ -192,7 +192,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         } else {
             sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "false"));
         }
-        //sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair(RTPDATACHANNELS_CONSTRAINT, "true"));
+
         sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair(DTLS_SRTP_KEY_AGREEMENT_CONSTRAINT, "true"));
         sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair("internalSctpDataChannels", "true"));
     }
@@ -288,35 +288,42 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     }
 
     void createLocalMediaStream(Object renderEGLContext,final VideoRenderer.Callbacks localRender) {
-        if (factory == null) { // || isError) {
+        if (factory == null) {
             Log.e(TAG, "Peerconnection factory is not created");
             return;
         }
-        Log.d(TAG, "RenderEGLContext: " + renderEGLContext);
         this.localRender = localRender;
-
-        Log.d(TAG, "PCConstraints: " + pcConstraints.toString());
-        if (videoConstraints != null) {
-            Log.d(TAG, "VideoConstraints: " + videoConstraints.toString());
-        }
-        Log.w(TAG, "PCConstraints: " + pcConstraints.toString());
         if (videoCallEnabled) {
-            Log.d(TAG, "EGLContext: " + renderEGLContext);
             factory.setVideoHwAccelerationOptions(renderEGLContext, renderEGLContext);
         }
+
         // Set default WebRTC tracing and INFO libjingle logging.
         // NOTE: this _must_ happen while |factory| is alive!
         Logging.enableTracing("logcat:", EnumSet.of(Logging.TraceLevel.TRACE_DEFAULT), Logging.Severity.LS_INFO);
 
         localMediaStream = factory.createLocalMediaStream("ARDAMS");
-        if (videoCallEnabled) {
-            String cameraDeviceName = CameraEnumerationAndroid.getDeviceName(0);
-            currentCameraPosition = NBMMediaConfiguration.NBMCameraPosition.BACK;
+
+        // If video call is enabled and the device has camera(s)
+        if (videoCallEnabled && numberOfCameras > 0) {
+            String cameraDeviceName; // = CameraEnumerationAndroid.getDeviceName(0);
             String frontCameraDeviceName = CameraEnumerationAndroid.getNameOfFrontFacingDevice();
-            if (numberOfCameras > 1 && frontCameraDeviceName != null) {
+            String backCameraDeviceName = CameraEnumerationAndroid.getNameOfBackFacingDevice();
+
+            // If current camera is set to front and the device has one
+            if (currentCameraPosition==NBMCameraPosition.FRONT && frontCameraDeviceName!=null) {
                 cameraDeviceName = frontCameraDeviceName;
-                currentCameraPosition = NBMMediaConfiguration.NBMCameraPosition.FRONT;
             }
+            // If current camera is set to back and the device has one
+            else if (currentCameraPosition==NBMCameraPosition.BACK && backCameraDeviceName!=null) {
+                cameraDeviceName = backCameraDeviceName;
+            }
+            // If current camera is set to any then we pick the first camera of the device, which
+            // should be a back-facing camera according to libjingle API
+            else {
+                cameraDeviceName = CameraEnumerationAndroid.getDeviceName(0);
+                currentCameraPosition = NBMCameraPosition.BACK;
+            }
+
             Log.d(TAG, "Opening camera: " + cameraDeviceName);
             videoCapturer = VideoCapturerAndroid.create(cameraDeviceName, null);
             if (videoCapturer == null) {
@@ -325,26 +332,47 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
             }
             localMediaStream.addTrack(createCapturerVideoTrack(videoCapturer));
         }
+
+        // Create audio track
         localMediaStream.addTrack(factory.createAudioTrack(AUDIO_TRACK_ID, factory.createAudioSource(audioConstraints)));
 
         Log.d(TAG, "Local media stream created.");
     }
 
-    void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
+    void selectCameraPosition(final NBMCameraPosition position){
+        if (!videoCallEnabled || videoCapturer == null || !hasCameraPosition(position)) {
+            Log.e(TAG, "Failed to switch camera. Video: " + videoCallEnabled + ". . Number of cameras: " + numberOfCameras);
+            return;
+        }
         if (position != currentCameraPosition) {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    if (!videoCallEnabled || numberOfCameras < 2 || videoCapturer == null) {
-                        Log.e(TAG, "Failed to switch camera. Video: " + videoCallEnabled + ". . Number of cameras: " + numberOfCameras);
-                        return;  // No video is sent or only one camera is available or error happened.
-                    }
                     Log.d(TAG, "Switch camera");
                     videoCapturer.switchCamera(null);
+                    currentCameraPosition = position;
                 }
             });
-            currentCameraPosition = position; // Let's see if we need to handle this after the switch event.
         }
+    }
+
+    void switchCamera(){
+        if (!videoCallEnabled || videoCapturer == null) {
+            Log.e(TAG, "Failed to switch camera. Video: " + videoCallEnabled + ". . Number of cameras: " + numberOfCameras);
+            return;
+        }
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Switch camera");
+                videoCapturer.switchCamera(null);
+                if (currentCameraPosition==NBMCameraPosition.BACK) {
+                    currentCameraPosition = NBMCameraPosition.FRONT;
+                } else {
+                    currentCameraPosition = NBMCameraPosition.BACK;
+                }
+            }
+        });
     }
 
     void setVideoEnabled(final boolean enable) {

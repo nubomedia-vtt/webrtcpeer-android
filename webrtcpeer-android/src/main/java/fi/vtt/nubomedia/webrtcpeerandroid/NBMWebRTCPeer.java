@@ -76,6 +76,7 @@ public class NBMWebRTCPeer{
     private static final String FIELD_TRIAL_AUTOMATIC_RESIZE = "WebRTC-MediaCodecVideoEncoder-AutomaticResize/Enabled/";
     private final LooperExecutor executor;
     private Context context;
+    private NBMMediaConfiguration config;
     private NBMPeerConnectionParameters peerConnectionParameters;
     private SignalingParameters signalingParameters = null;
     private VideoRenderer.Callbacks localRender;
@@ -267,6 +268,7 @@ public class NBMWebRTCPeer{
         this.observer = observer;
         this.masterRenderer = null;
         this.activeMasterStream = null;
+        this.config = config;
         executor = new LooperExecutor();
 
         // Looper thread is started once in private ctor and is used for all
@@ -529,6 +531,7 @@ public class NBMWebRTCPeer{
         if (mediaResourceManager != null && mediaResourceManager.getLocalMediaStream() == null) {
             mediaResourceManager.createLocalMediaStream(VideoRendererGui.getEglBaseContext(), localRender);
             mediaResourceManager.startVideoSource();
+            mediaResourceManager.selectCameraPosition(config.getCameraPosition());
             return true;
         } else {
             return false;
@@ -579,6 +582,14 @@ public class NBMWebRTCPeer{
     @SuppressWarnings("unused")
     public void selectCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
         mediaResourceManager.selectCameraPosition(position);
+    }
+
+    /**
+     * Switches camera between front and back
+     */
+    @SuppressWarnings("unused")
+    public void switchCameraPosition(){
+        mediaResourceManager.switchCamera();
     }
 
     /**
