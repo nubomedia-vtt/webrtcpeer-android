@@ -209,8 +209,8 @@ public class NBMWebRTCPeer{
      * Peer connection parameters.
      */
     public static class NBMPeerConnectionParameters {
-        public final boolean videoCallEnabled;
-        public final boolean loopback;
+        public  boolean videoCallEnabled;
+        public  boolean loopback;
         public final int videoWidth;
         public final int videoHeight;
         public final int videoFps;
@@ -608,7 +608,7 @@ public class NBMWebRTCPeer{
      */
     @SuppressWarnings("unused")
     public boolean videoEnabled(){
-        return mediaResourceManager.getVideoEnabled();
+        return mediaResourceManager.getRemoteVideoEnabled();
     }
 
     /**
@@ -617,7 +617,7 @@ public class NBMWebRTCPeer{
      */
     @SuppressWarnings("unused")
     public void enableVideo(boolean enable){
-        mediaResourceManager.setVideoEnabled(enable);
+        mediaResourceManager.setLocalVideoEnabled(enable);
     }
 
     /**

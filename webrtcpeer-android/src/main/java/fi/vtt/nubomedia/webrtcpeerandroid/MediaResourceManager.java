@@ -101,7 +101,8 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private MediaConstraints audioConstraints;
     private MediaConstraints sdpMediaConstraints;
     private boolean videoCallEnabled;
-    private boolean renderVideo;
+    private boolean renderLocalVideo;
+    private boolean renderRemoteVideo;
     private boolean videoSourceStopped;
     private MediaStream localMediaStream;
     private VideoSource videoSource;
@@ -121,7 +122,8 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         this.localMediaStream = null;
         this.executor = executor;
         this.factory = factory;
-        renderVideo = true;
+        renderLocalVideo = true;
+        renderRemoteVideo = true;
         remoteVideoTracks = new HashMap<>();
         remoteVideoRenderers = new HashMap<>();
         remoteVideoMediaStreams = new HashMap<>();
@@ -238,7 +240,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
     private VideoTrack createCapturerVideoTrack(VideoCapturerAndroid capturer) {
         videoSource = factory.createVideoSource(capturer, videoConstraints);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
-        localVideoTrack.setEnabled(renderVideo);
+        localVideoTrack.setEnabled(renderLocalVideo);
         localVideoTrack.addRenderer(new VideoRenderer(localRender));
         return localVideoTrack;
     }
@@ -259,7 +261,7 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
                 // Get the video track
                 VideoTrack remoteVideoTrack = remoteStream.videoTracks.get(0);
                 // Set video track enabled if we have enabled video rendering
-                remoteVideoTrack.setEnabled(renderVideo);
+                remoteVideoTrack.setEnabled(renderRemoteVideo);
 
                 VideoRenderer videoRenderer = remoteVideoRenderers.get(remoteRender);
                 if (videoRenderer != null) {
@@ -375,23 +377,35 @@ final class MediaResourceManager implements NBMWebRTCPeer.Observer {
         });
     }
 
-    void setVideoEnabled(final boolean enable) {
+    void setLocalVideoEnabled(final boolean enable) {
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                renderVideo = enable;
+                renderLocalVideo = enable;
                 if (localVideoTrack != null) {
-                    localVideoTrack.setEnabled(renderVideo);
-                }
-                for (VideoTrack tv : remoteVideoTracks.values()) {
-                    tv.setEnabled(renderVideo);
+                    localVideoTrack.setEnabled(renderLocalVideo);
                 }
             }
         });
     }
 
-    boolean getVideoEnabled(){
-        return renderVideo;
+    void setRemoteVideoEnabled(final boolean enable) {
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                renderRemoteVideo = enable;
+                for (VideoTrack tv : remoteVideoTracks.values()) {
+                    tv.setEnabled(renderRemoteVideo);
+                }
+            }
+        });
+    }
+
+    boolean getRemoteVideoEnabled(){
+        return renderRemoteVideo;
+    }
+    boolean getLocalVideoEnabled(){
+        return renderLocalVideo;
     }
 
     boolean hasCameraPosition(NBMMediaConfiguration.NBMCameraPosition position){
